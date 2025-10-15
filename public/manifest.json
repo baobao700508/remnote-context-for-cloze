@@ -2,15 +2,15 @@
   "manifestVersion": 1,
   "id": "context_for_cloze",
   "name": "Context for Cloze",
-  "author": "your-name",
-  "repoUrl": "",
+  "author": "baobao700508",
+  "repoUrl": "https://github.com/baobao700508/remnote-context-for-cloze",
   "version": { "major": 0, "minor": 1, "patch": 0 },
   "theme": [],
   "enableOnMobile": true,
   "description": "显示 Cloze 题面上下文（基于最近 Power-Up 祖先的子树，纯显示层）",
   "requestNative": false,
   "requiredScopes": [
-    { "type": "All", "level": "Write" }
+    { "type": "All", "level": "ReadCreateModify" }
   ]
 }
 
