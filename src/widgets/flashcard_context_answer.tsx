@@ -42,22 +42,34 @@ async function collectContext(plugin: any, anchor: any, maxDepth: number, maxNod
 function Widget() {
   const plugin = usePlugin();
   const ctx = useWidgetContext() as Ctx;
+  const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
+
 
   const answerMode = useRunAsync(async () => (await plugin.settings.getSetting('answerMode')) ?? 'continue', []);
 
   const { items } = useRunAsync(async () => {
-    if (!ctx?.remId) return { items: [] as { id: string; depth: number; text: string }[] };
-    if (answerMode === 'questionOnly') return { items: [] };
-    const anchor = await getNearestAnchor(plugin, ctx.remId);
-    if (!anchor) return { items: [] };
-    let maxDepth = Number((await plugin.settings.getSetting('maxDepth')) ?? 3);
-    let maxNodes = Number((await plugin.settings.getSetting('maxNodes')) ?? 100);
-    if (answerMode === 'full') { maxDepth = 999; maxNodes = 10000; }
-    const items = await collectContext(plugin, anchor, maxDepth, maxNodes);
-    return { items };
+    try {
+      console.log('[CFC][A] ctx', ctx, 'mode', answerMode);
+      if (!ctx?.remId) return { items: [] as { id: string; depth: number; text: string }[] };
+      if (answerMode === 'questionOnly') return { items: [] };
+      const anchor = await getNearestAnchor(plugin, ctx.remId);
+      console.log('[CFC][A] anchor', anchor?._id || 'none');
+      if (!anchor) return { items: [] };
+      let maxDepth = Number((await plugin.settings.getSetting('maxDepth')) ?? 3);
+      let maxNodes = Number((await plugin.settings.getSetting('maxNodes')) ?? 100);
+      if (answerMode === 'full') { maxDepth = 999; maxNodes = 10000; }
+      const items = await collectContext(plugin, anchor, maxDepth, maxNodes);
+      console.log('[CFC][A] items', items.length);
+      return { items };
+    } catch (e) {
+      console.error('[CFC][A] error', e);
+      return { items: [] };
+    }
   }, [ctx?.remId, answerMode]) || { items: [] } as any;
 
-  if (!items.length) return null;
+  if (!items.length) return debug ? (
+    <div className="cfc-container"><div className="cfc-title">Context</div><div className="cfc-empty">No context (no anchor or empty)</div></div>
+  ) : null;
   return (
     <div className="cfc-container">
       <div className="cfc-title">Context</div>

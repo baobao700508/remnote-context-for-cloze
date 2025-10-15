@@ -42,18 +42,30 @@ async function collectContext(plugin: any, anchor: any, maxDepth: number, maxNod
 function Widget() {
   const plugin = usePlugin();
   const ctx = useWidgetContext() as Ctx;
+  const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
+
 
   const { items } = useRunAsync(async () => {
-    if (!ctx?.remId) return { items: [] as { id: string; depth: number; text: string }[] };
-    const anchor = await getNearestAnchor(plugin, ctx.remId);
-    if (!anchor) return { items: [] };
-    const maxDepth = (await plugin.settings.getSetting('maxDepth')) ?? 3;
-    const maxNodes = (await plugin.settings.getSetting('maxNodes')) ?? 100;
-    const items = await collectContext(plugin, anchor, Number(maxDepth), Number(maxNodes));
-    return { items };
+    try {
+      console.log('[CFC][Q] ctx', ctx);
+      if (!ctx?.remId) return { items: [] as { id: string; depth: number; text: string }[] };
+      const anchor = await getNearestAnchor(plugin, ctx.remId);
+      console.log('[CFC][Q] anchor', anchor?._id || 'none');
+      if (!anchor) return { items: [] };
+      const maxDepth = (await plugin.settings.getSetting('maxDepth')) ?? 3;
+      const maxNodes = (await plugin.settings.getSetting('maxNodes')) ?? 100;
+      const items = await collectContext(plugin, anchor, Number(maxDepth), Number(maxNodes));
+      console.log('[CFC][Q] items', items.length);
+      return { items };
+    } catch (e) {
+      console.error('[CFC][Q] error', e);
+      return { items: [] };
+    }
   }, [ctx?.remId]) || { items: [] } as any;
 
-  if (!items.length) return null;
+  if (!items.length) return debug ? (
+    <div className="cfc-container"><div className="cfc-title">Context</div><div className="cfc-empty">No context (no anchor or empty)</div></div>
+  ) : null;
   return (
     <div className="cfc-container">
       <div className="cfc-title">Context</div>
