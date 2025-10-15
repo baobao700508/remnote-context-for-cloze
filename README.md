@@ -11,8 +11,8 @@
 - Cloze 遮挡：用简单正则将 `{{cN::...}}` 片段遮挡为 `[…]`（不改变系统逻辑）
 
 ## 开发
-- 开发：`npm run dev`（Webpack Dev Server 8081）
-- RemNote 中：Settings → Plugins → Develop from localhost → 输入 `http://localhost:8081/index.html`
+- 开发：`npm run dev`（Webpack Dev Server 8080）
+- RemNote 中：Settings → Plugins → Develop from localhost → 输入 `http://localhost:8080`
 - 构建：`npm run build`（生成 `dist/PluginZip.zip`）
 
 ## 注意
