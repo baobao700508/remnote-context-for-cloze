@@ -1,0 +1,6 @@
+:root{ --cfc-muted: #7a7a7a; }
+.cfc-container{ font-size: 0.9rem; line-height: 1.4; margin: 8px 0; }
+.cfc-title{ color: var(--cfc-muted); font-weight: 600; margin-bottom: 4px; }
+.cfc-list{ list-style: none; padding-left: 0; }
+.cfc-item{ margin: 2px 0; white-space: pre-wrap; }
+
