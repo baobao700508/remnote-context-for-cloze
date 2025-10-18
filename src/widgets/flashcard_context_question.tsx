@@ -72,6 +72,8 @@ async function richToHTMLWithClozeMask(plugin: any, rich: any[], shouldMask: boo
     // 兜底：退化为纯文本
     const s = await plugin.richText.toString(masked as any);
     return (s || '').replace(/\[\u2026\]|\[…\]/g, ELLIPSIS_HTML);
+}
+
 async function richToHTMLWithClozeQuestion(plugin: any, rich: any[]): Promise<string> {
   if (!Array.isArray(rich)) return '';
   const masked: any[] = [];
@@ -97,8 +99,6 @@ async function richToHTMLWithClozeQuestion(plugin: any, rich: any[]): Promise<st
   }
 }
 
-  }
-}
 
 async function getNearestAnchor(plugin: any, remId: string) {
   const power = await plugin.powerup.getPowerupByCode(POW_CODE);
@@ -265,3 +265,5 @@ function Widget() {
 
 renderWidget(Widget);
 
+
+}
