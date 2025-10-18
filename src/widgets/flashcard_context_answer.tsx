@@ -152,7 +152,13 @@ function Widget() {
     <div className="cfc-container" style={{ width: '100%', borderTop: '1px solid var(--rn-clr-border, #e4e8ef)', paddingTop: 6, overflow: 'visible' }}>
       <ul className="cfc-list" style={{ listStyle: 'disc', listStylePosition: 'outside', margin: 0, paddingLeft: 20, paddingBottom: 8, fontSize: '1.08rem' }}>
         {items.map((it: { id: string; depth: number; text: string }) => (
-          <li key={it.id} className="cfc-item" style={{ marginLeft: `${Math.max(0, it.depth)*24}px`, padding: '2px 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <li key={it.id} className="cfc-item" style={{ position:'relative', marginLeft: `${Math.max(0, it.depth)*24}px`, padding: '2px 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {Array.from({ length: Math.max(0, it.depth) }).map((_, i) => (
+              <span key={`g-${it.id}-${i}`}
+                    style={{ position:'absolute', top:2, bottom:2, width:0,
+                             left: `${-((Math.max(0, it.depth) - i) * 24 - 12)}px`,
+                             borderLeft: '2px solid rgba(148,163,184,0.35)', pointerEvents:'none' }} />
+            ))}
             <span style={{ fontSize: '1rem' }}>{renderCFCText(it.text)}</span>
           </li>
         ))}
