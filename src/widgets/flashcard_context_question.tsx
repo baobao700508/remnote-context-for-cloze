@@ -159,7 +159,9 @@ async function getCurrentCardRemId(plugin: any, ctx: Ctx | undefined) {
 function Widget() {
   const rootRef = React.useRef<HTMLDivElement>(null);
   const plugin = usePlugin();
-  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), []) as Ctx | undefined;
+  const [tick, setTick] = React.useState(0);
+  React.useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 300); return () => clearInterval(id); }, []);
+  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
 
   // 统一 hooks 顺序：不在此处提前 return；在后面再做 gating
@@ -189,7 +191,7 @@ function Widget() {
       console.error('[CFC][Q] error', e);
       return { items: [] };
     }
-  }, [ctx?.remId]) || { items: [], shouldMask: true } as any;
+  }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true } as any;
 
   React.useEffect(() => {
     if (rootRef.current) {

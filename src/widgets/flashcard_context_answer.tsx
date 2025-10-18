@@ -154,7 +154,9 @@ async function getCurrentCardRemId(plugin: any, ctx: Ctx | undefined) {
 
 function Widget() {
   const plugin = usePlugin();
-  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), []) as Ctx | undefined;
+  const [tick, setTick] = React.useState(0);
+  React.useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 300); return () => clearInterval(id); }, []);
+  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
 
 
@@ -188,7 +190,7 @@ function Widget() {
       console.error('[CFC][A] error', e);
       return { items: [] };
     }
-  }, [ctx?.remId, answerMode]) || { items: [], shouldMask: true } as any;
+  }, [ctx?.remId, ctx?.revealed, answerMode]) || { items: [], shouldMask: true } as any;
 
   // Only show on answer (back) phase
   if (!ctx?.revealed) return null;

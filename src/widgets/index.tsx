@@ -1,9 +1,3 @@
-/*
-  样式约定：
-  - .cfc-omission 用于“其他 Rem 的 Cloze 遮挡” => 黄色省略号
-  - .cfc-current-q 用于“当前 Rem 的 Cloze 遮挡” => 蓝色问号框
-*/
-
 import { declareIndexPlugin, type ReactRNPlugin, WidgetLocation, SelectionType } from '@remnote/plugin-sdk';
 import '../style.css';
 import '../index.css';
@@ -105,10 +99,10 @@ async function onActivate(plugin: ReactRNPlugin) {
 
     /* 被“显示出来的 cloze”条目下划线提示（仅视觉标识） */
     .rn-queue__content .cfc-revealed-cloze {
-      display: inline-block;
-      border-bottom: 2px solid var(--rn-clr-accent, #0969da);
-      padding-bottom: 1px;
-      vertical-align: text-bottom;
+      text-decoration: underline;
+      text-decoration-color: var(--rn-clr-accent, #0969da);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 2px;
     }
   `;
   try {
