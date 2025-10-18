@@ -86,13 +86,13 @@ async function onActivate(plugin: ReactRNPlugin) {
     .rn-queue__content .cfc-list { list-style: none; margin: 0; padding-left: 0; }
     .rn-queue__content .cfc-item { margin: 5px 0; white-space: pre-wrap; }
 
-    /* 原生风格树形连线（纯 CSS） */
+    /* 原生风格树形连线：行距与容器（连线由组件内联实现，CSS 仅负责布局） */
     .rn-queue__content .cfc-list > li.cfc-item.rnmm-row { margin: 4px 0 !important; padding: 0; }
     .rn-queue__content .rnmm-row { display: flex; align-items: stretch; }
     .rn-queue__content .rnmm-branch { width: 28px; position: relative; flex: 0 0 28px; min-height: 1.45em; }
-    .rn-queue__content .rnmm-branch::before { content: ''; position: absolute; left: 13px; top: 0; bottom: 0; border-left: 2px solid #c8d1dc; }
-    .rn-queue__content .rnmm-branch::after  { content: ''; position: absolute; left: 13px; top: 1.05em; width: 16px; border-top: 2px solid #c8d1dc; }
-    .rn-queue__content .rnmm-branch.end::before { bottom: 1.05em; }
+    /* 当使用内联连线时，禁用伪元素以避免重复渲染 */
+    .rn-queue__content .rnmm-inline .rnmm-branch::before,
+    .rn-queue__content .rnmm-inline .rnmm-branch::after { content: none !important; display: none !important; }
     .rn-queue__content .rnmm-node { display: inline-block; line-height: 1.45; white-space: normal; word-break: break-word; }
   `);
 }

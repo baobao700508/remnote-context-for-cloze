@@ -158,13 +158,30 @@ function Widget() {
   ) : null;
   return (
     <div ref={rootRef} className="cfc-container" style={{ width: '100%', display: 'block', boxSizing: 'border-box', minWidth: 0, maxWidth: '100%' }}>
-      <ul className="cfc-list" style={{ listStyle: 'none', margin: 0, paddingLeft: 0, width: '100%' }}>
+      <ul className="cfc-list rnmm-inline" style={{ listStyle: 'none', margin: 0, paddingLeft: 0, width: '100%' }}>
         {items.map((it: { id: string; depth: number; text: string; continues: boolean[] }) => (
-          <li key={it.id} className="cfc-item rnmm-row">
-            {Array.from({ length: Math.max(0, it.depth) }).map((_, d) => (
-              <span key={d} className={`rnmm-branch ${it.continues[d] ? '' : 'end'}`} />
-            ))}
-            <span className="rnmm-node">{it.text}</span>
+          <li key={it.id} className="cfc-item rnmm-row" style={{ margin: '4px 0' }}>
+            {Array.from({ length: Math.max(0, it.depth) }).map((_, d, arr) => {
+              const isLast = d === arr.length - 1;
+              const cont = it.continues[d];
+              return (
+                <span
+                  key={d}
+                  className="rnmm-branch"
+                  style={{ position: 'relative', width: 28, flex: '0 0 28px', minHeight: '1.45em', display: 'inline-block' }}
+                >
+                  <span
+                    style={{ position: 'absolute', left: 13, top: 0, bottom: cont ? 0 : '1.05em', borderLeft: '2px solid #c8d1dc' }}
+                  />
+                  {isLast ? (
+                    <span
+                      style={{ position: 'absolute', left: 13, top: '1.05em', width: 16, borderTop: '2px solid #c8d1dc' }}
+                    />
+                  ) : null}
+                </span>
+              );
+            })}
+            <span className="rnmm-node" style={{ lineHeight: 1.45 }}>{it.text}</span>
           </li>
         ))}
       </ul>
