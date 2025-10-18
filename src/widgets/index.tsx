@@ -71,9 +71,9 @@ async function onActivate(plugin: ReactRNPlugin) {
   }});
 
   // Widget（题面与答案）
-  // 迁移到 FlashcardExtraDetail（额外细节区），确保不影响原生卡片正面/答案的主区域展示。
-  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.FlashcardExtraDetail, { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_answer', WidgetLocation.FlashcardExtraDetail, { dimensions: { height: 'auto', width: '100%' } });
+  // 统一挂载到 FlashcardUnder（不覆盖原生主区域；题面/答案阶段由组件 gating 控制显示）
+  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_answer',   WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
 
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
   await plugin.app.registerCSS('cfc-queue-scope', `
@@ -84,7 +84,15 @@ async function onActivate(plugin: ReactRNPlugin) {
 
     /* 列表与条目样式，避免默认圆点与过大缩进 */
     .rn-queue__content .cfc-list { list-style: none; margin: 0; padding-left: 0; }
-    .rn-queue__content .cfc-item { margin: 2px 0; white-space: pre-wrap; }
+    .rn-queue__content .cfc-item { margin: 5px 0; white-space: pre-wrap; }
+
+    /* 原生风格树形连线（纯 CSS） */
+    .rn-queue__content .rnmm-row { display: flex; align-items: flex-start; margin: 4px 0; }
+    .rn-queue__content .rnmm-branch { width: 28px; position: relative; flex: 0 0 28px; }
+    .rn-queue__content .rnmm-branch::before { content: ''; position: absolute; left: 13px; top: 0; bottom: 0; border-left: 2px solid #c8d1dc; }
+    .rn-queue__content .rnmm-branch::after  { content: ''; position: absolute; left: 13px; top: 1.05em; width: 16px; border-top: 2px solid #c8d1dc; }
+    .rn-queue__content .rnmm-branch.end::before { bottom: 1.05em; }
+    .rn-queue__content .rnmm-node { line-height: 1.45; white-space: normal; word-break: break-word; }
   `);
 }
 
