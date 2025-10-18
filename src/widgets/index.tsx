@@ -76,9 +76,14 @@ async function onActivate(plugin: ReactRNPlugin) {
 
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
   await plugin.app.registerCSS('cfc-queue-scope', `
-    .rn-queue__content .cfc-container { margin: 0; padding: 0; }
-    .rn-queue__content .cfc-title { display: none; }
+    /* 仅在复习队列内显示 */
+    .rn-queue__content .cfc-container { margin: 6px 0 0; padding: 0; font-size: 0.92rem; line-height: 1.45; color: var(--rn-clr-text, #1f2328); }
+    .rn-queue__content .cfc-title { display: none; color: var(--rn-clr-text-secondary, #57606a); font-weight: 600; margin-bottom: 4px; }
     .rn-queue__content .rn-dialog .cfc-container { display: none !important; }
+
+    /* 列表与条目样式，避免默认圆点与过大缩进 */
+    .rn-queue__content .cfc-list { list-style: none; margin: 0; padding-left: 0; }
+    .rn-queue__content .cfc-item { margin: 2px 0; white-space: pre-wrap; }
   `);
 }
 
