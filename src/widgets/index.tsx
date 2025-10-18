@@ -98,7 +98,12 @@ async function onActivate(plugin: ReactRNPlugin) {
     }
 
     /* 被“显示出来的 cloze”条目下划线提示（仅视觉标识） */
-    .rn-queue__content .cfc-revealed-cloze { display: inline-block; border-bottom: 2px solid var(--rn-clr-accent, #0969da); }
+    .rn-queue__content .cfc-revealed-cloze {
+      display: inline-block;
+      border-bottom: 2px solid var(--rn-clr-accent, #0969da);
+      padding-bottom: 1px;
+      vertical-align: text-bottom;
+    }
   `);
 }
 

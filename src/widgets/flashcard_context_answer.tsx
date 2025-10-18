@@ -176,9 +176,10 @@ function Widget() {
         }}>?</span>
       );
     }
-    const content = <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
-    if (shouldMask === false && it.hasCloze) return <span className="cfc-revealed-cloze">{content}</span>;
-    return content;
+    if (shouldMask === false && it.hasCloze) {
+      return <span className="cfc-revealed-cloze" style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
+    }
+    return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
 
   };
 
