@@ -160,7 +160,7 @@ function Widget() {
     <div className="cfc-container" style={{ width: '100%' }}>
       <ul className="cfc-list rnmm-inline" style={{ listStyle: 'none', margin: 0, paddingLeft: 0 }}>
         {items.map((it: { id: string; depth: number; text: string; continues: boolean[] }) => (
-          <li key={it.id} className="cfc-item rnmm-row" style={{ padding: '4px 0' }}>
+          <li key={it.id} className="cfc-item rnmm-row" style={{ padding: '4px 0', margin: 0 }}>
             {Array.from({ length: Math.max(0, it.depth) }).map((_, d, arr) => {
               const isLast = d === arr.length - 1;
               const cont = it.continues[d];
@@ -168,15 +168,24 @@ function Widget() {
                 <span
                   key={d}
                   className="rnmm-branch"
-                  style={{ position: 'relative', width: 28, flex: '0 0 28px', minHeight: '1.45em', display: 'inline-block' }}
+                  style={{
+                    position: 'relative',
+                    width: 28,
+                    flex: '0 0 28px',
+                    minHeight: '1.45em',
+                    display: 'inline-block',
+                    borderLeft: `2px solid ${cont ? '#c8d1dc' : 'transparent'}`
+                  }}
                 >
-                  <span
-                    style={{ position: 'absolute', left: 13, top: 0, bottom: cont ? 0 : '1.05em', borderLeft: '2px solid #c8d1dc' }}
-                  />
                   {isLast ? (
-                    <span
-                      style={{ position: 'absolute', left: 13, top: '1.05em', width: 16, borderTop: '2px solid #c8d1dc' }}
-                    />
+                    <>
+                      <span
+                        style={{ position: 'absolute', left: 13, top: 0, height: '1.05em', borderLeft: '2px solid #c8d1dc' }}
+                      />
+                      <span
+                        style={{ position: 'absolute', left: 13, top: '1.05em', width: 16, borderTop: '2px solid #c8d1dc' }}
+                      />
+                    </>
                   ) : null}
                 </span>
               );
