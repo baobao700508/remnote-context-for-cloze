@@ -61,6 +61,7 @@ async function getPathFromAnchorToCurrent(plugin: any, anchorId: string, current
 }
 
 function Widget() {
+  const rootRef = React.useRef<HTMLDivElement>(null);
   const plugin = usePlugin();
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), []) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
@@ -93,9 +94,15 @@ function Widget() {
   if (!items.length) return debug ? (
     <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
   ) : null;
+  React.useEffect(() => {
+    if (rootRef.current) {
+      const w = rootRef.current.clientWidth;
+      console.log('[CFC][Q] width] root', w, 'iframe', window.innerWidth);
+    }
+  }, [items.length]);
   return (
-    <div className="cfc-container" style={{ width: '100%' }}>
-      <ul className="cfc-list" style={{ listStyle: 'none', margin: 0, paddingLeft: 0 }}>
+    <div ref={rootRef} className="cfc-container" style={{ width: '100%', display: 'block', boxSizing: 'border-box', minWidth: 0, maxWidth: '100%' }}>
+      <ul className="cfc-list" style={{ listStyle: 'none', margin: 0, paddingLeft: 0, width: '100%' }}>
         {items.map((it: { id: string; depth: number; text: string }) => (
           <li key={it.id} className="cfc-item" style={{ paddingLeft: `${Math.max(0, it.depth)*16}px`, whiteSpace: 'normal', wordBreak: 'break-word' }}>{it.text}</li>
         ))}
