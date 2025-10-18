@@ -114,6 +114,36 @@ function Widget() {
 
   // Only show on answer (back) phase
   if (!ctx?.revealed) return null;
+  const renderCFCText = (text: string) => {
+    if (text === '[?]') {
+      return (
+        <span style={{
+          display: 'inline-block', padding: '0 10px', borderRadius: 8,
+          background: 'var(--rn-clr-accent-muted, rgba(56,139,253,0.15))',
+          color: 'var(--rn-clr-accent, #0969da)', lineHeight: 1.45,
+          border: '1px solid rgba(56,139,253,0.25)'
+        }}>?</span>
+      );
+    }
+    if (typeof text === 'string' && text.includes('[\u2026]')) {
+      const parts = text.split('[\u2026]');
+      const nodes: React.ReactNode[] = [];
+      parts.forEach((p, i) => {
+        if (p) nodes.push(<span key={`t-${i}`}>{p}</span>);
+        if (i < parts.length - 1) nodes.push(
+          <span key={`om-${i}`} style={{
+            display: 'inline-block', padding: '0 10px', borderRadius: 8,
+            background: 'var(--rn-clr-warning-muted, rgba(255,212,0,0.15))',
+            color: 'var(--rn-clr-warning, #b58900)', lineHeight: 1.45,
+            border: '1px solid rgba(255,212,0,0.3)'
+          }}>…</span>
+        );
+      });
+      return nodes;
+    }
+    return text as any;
+  };
+
 
   if (!items.length) return debug ? (
     <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
@@ -123,14 +153,7 @@ function Widget() {
       <ul className="cfc-list" style={{ listStyle: 'disc', listStylePosition: 'outside', margin: 0, paddingLeft: 20, paddingBottom: 8, fontSize: '1rem' }}>
         {items.map((it: { id: string; depth: number; text: string }) => (
           <li key={it.id} className="cfc-item" style={{ marginLeft: `${Math.max(0, it.depth)*20}px`, padding: '2px 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-            {it.text === '[?]' ? (
-              <span style={{
-                display: 'inline-block', padding: '0 8px', borderRadius: 8,
-                background: 'var(--rn-clr-accent-muted, rgba(56,139,253,0.15))',
-                color: 'var(--rn-clr-accent, #0969da)', lineHeight: 1.45,
-                border: '1px solid rgba(56,139,253,0.25)'
-              }}>?</span>
-            ) : it.text}
+            {renderCFCText(it.text)}
           </li>
         ))}
       </ul>
