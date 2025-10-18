@@ -8,21 +8,33 @@ type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
 
 const ClozeMask = (s: string) => s.replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, '[…]');
 
-// 基于 RichText 的逐元素掩码：凡含 cloze 标记(cId)的文本元素，转为 […]
-async function stringifyWithClozeMask(plugin: any, rich: any[]): Promise<string> {
+// 基于 RichText 的逐元素掩码（HTML 版）：凡含 cloze 标记(cId)的文本元素，替换为占位符，再使用 SDK 转为 HTML
+const ELLIPSIS_TOKEN = '[[[CFC_EL]]]';
+async function richToHTMLWithClozeMask(plugin: any, rich: any[]): Promise<string> {
   if (!Array.isArray(rich)) return '';
-  const out: string[] = [];
+  const masked: any[] = [];
   for (const el of rich) {
-    if (typeof el === 'string') { out.push(el); continue; }
+    if (typeof el === 'string') { masked.push(el); continue; }
     const i = (el as any)?.i;
     if (i === 'm') {
       const hasCloze = (el as any)?.cId || (el as any)?.hiddenCloze || (el as any)?.revealedCloze;
-      out.push(hasCloze ? '[…]' : ((el as any)?.text ?? ''));
+      if (hasCloze) masked.push({ i: 'm', text: ELLIPSIS_TOKEN });
+      else masked.push(el);
+    } else if (i === 'x') { // LaTeX
+      const hasCloze = (el as any)?.cId || ((el as any)?.latexClozes && (el as any)?.latexClozes.length);
+      if (hasCloze) masked.push({ i: 'm', text: ELLIPSIS_TOKEN }); else masked.push(el);
     } else {
-      try { out.push(await plugin.richText.toString([el])); } catch { /* noop */ }
+      masked.push(el);
     }
   }
-  return out.join('');
+  try {
+    const html = await plugin.richText.toHTML(masked);
+    return html.replaceAll(ELLIPSIS_TOKEN, '<span class="cfc-omission">…</span>');
+  } catch {
+    // 兜底：退化为纯文本
+    const s = await plugin.richText.toString(masked as any);
+    return (s || '').replace(/\[\u2026\]|\[…\]/g, '<span class="cfc-omission">…</span>');
+  }
 }
 
 async function getNearestAnchor(plugin: any, remId: string) {
@@ -40,22 +52,22 @@ async function getNearestAnchor(plugin: any, remId: string) {
   return null;
 }
 async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number) {
-  const items: { id: string; depth: number; text: string }[] = [];
+  const items: { id: string; depth: number; html: string; isCurrent?: boolean }[] = [];
   let count = 0;
   async function dfs(rem: any, depth: number) {
     if (depth > maxDepth || count >= maxNodes) return;
     // 输出当前节点（包含 root 自身），应用占位/掩码
     const id = rem._id;
-    let text = '';
+    let html = ''; let isCurrent = false;
     if (id === currentRemId) {
-      text = '[?]';
+      isCurrent = true;
     } else {
       // 使用 RichText 级别的 cloze mask 
-      const str = await stringifyWithClozeMask(plugin, rem.text || []);
+      html = await richToHTMLWithClozeMask(plugin, rem.text || []);
       // 兜底：若未检测到 cId 
-      text = ClozeMask(str || '');
+      
     }
-    items.push({ id, depth, text });
+    items.push({ id, depth, html, isCurrent });
     count++;
     if (count >= maxNodes) return;
     // 递归子节点
@@ -98,7 +110,7 @@ function Widget() {
   const { items } = useRunAsync(async () => {
     try {
       console.log('[CFC][Q] ctx', ctx);
-      if (!ctx?.remId || ctx?.revealed) return { items: [] as { id: string; depth: number; text: string }[] };
+      if (!ctx?.remId || ctx?.revealed) return { items: [] as { id: string; depth: number; html: string; isCurrent?: boolean }[] };
       const maskId = await getCurrentCardRemId(plugin, ctx);
       const anchor = await getNearestAnchor(plugin, maskId || ctx.remId);
       console.log('[CFC][Q] anchor', anchor?._id || 'none');
@@ -120,8 +132,8 @@ function Widget() {
       console.log('[CFC][Q] width] root', w, 'iframe', window.innerWidth);
     }
   }, [items.length]);
-  const renderCFCText = (text: string) => {
-    if (text === '[?]') {
+  const renderItem = (it: { id: string; depth: number; html: string; isCurrent?: boolean }) => {
+    if (it.isCurrent) {
       return (
         <span style={{
           display: 'inline-block', padding: '0 10px', borderRadius: 8,
@@ -131,23 +143,10 @@ function Widget() {
         }}>?</span>
       );
     }
-    if (typeof text === 'string' && text.includes('[…]')) {
-      const parts = text.split('[…]');
-      const nodes: React.ReactNode[] = [];
-      parts.forEach((p, i) => {
-        if (p) nodes.push(<span key={`t-${i}`}>{p}</span>);
-        if (i < parts.length - 1) nodes.push(
-          <span key={`om-${i}`} style={{
-            display: 'inline-block', padding: '0 10px', borderRadius: 8,
-            background: 'var(--rn-clr-warning-muted, rgba(255,212,0,0.15))',
-            color: 'var(--rn-clr-warning, #b58900)', lineHeight: 1.45,
-            border: '1px solid rgba(255,212,0,0.3)'
-          }}>…</span>
-        );
-      });
-      return nodes;
-    }
-    return text as any;
+    /* Rich HTML (with cloze masked to yellow chip) will be injected below; keep legacy branch for safety off */
+      return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
+
+    return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} /> as any;
   };
 
   // gating (after all hooks):
@@ -158,7 +157,7 @@ function Widget() {
   return (
     <div ref={rootRef} className="cfc-container" style={{ width: '100%', display: 'block', boxSizing: 'border-box', minWidth: 0, maxWidth: '100%', borderTop: '1px solid var(--rn-clr-border, #e4e8ef)', paddingTop: 6, overflow: 'visible' }}>
       <ul className="cfc-list" style={{ listStyle: 'disc', listStylePosition: 'outside', margin: 0, paddingLeft: 20, paddingBottom: 8, width: '100%', fontSize: '1.08rem' }}>
-        {items.map((it: { id: string; depth: number; text: string }) => (
+        {items.map((it: { id: string; depth: number; html: string; isCurrent?: boolean }) => (
           <li key={it.id} className="cfc-item" style={{ position:'relative', marginLeft: `${Math.max(0, it.depth)*24}px`, padding: '2px 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {Array.from({ length: Math.max(0, it.depth) }).map((_, i) => (
               <span key={`g-${it.id}-${i}`}
@@ -166,7 +165,7 @@ function Widget() {
                              left: `${-((Math.max(0, it.depth) - i) * 24 - 12)}px`,
                              borderLeft: '2px solid rgba(148,163,184,0.35)', pointerEvents:'none' }} />
             ))}
-            <span style={{ fontSize: '1rem' }}>{renderCFCText(it.text)}</span>
+            {renderItem(it)}
           </li>
         ))}
       </ul>

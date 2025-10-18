@@ -85,6 +85,14 @@ async function onActivate(plugin: ReactRNPlugin) {
     /* 列表与条目样式，避免默认圆点与过大缩进 */
     .rn-queue__content .cfc-list { list-style: none; margin: 0; padding-left: 0; }
     .rn-queue__content .cfc-item { margin: 5px 0; white-space: pre-wrap; }
+
+    /* 黄底省略号徽标（与蓝色问号一致的尺寸/圆角/边框） */
+    .rn-queue__content .cfc-omission {
+      display: inline-block; padding: 0 10px; border-radius: 8px; line-height: 1.45;
+      background: var(--rn-clr-warning-muted, rgba(255,212,0,0.15));
+      color: var(--rn-clr-warning, #b58900);
+      border: 1px solid rgba(255,212,0,0.3);
+    }
   `);
 }
 
