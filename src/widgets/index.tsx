@@ -75,29 +75,8 @@ async function onActivate(plugin: ReactRNPlugin) {
   await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
   await plugin.app.registerWidget('flashcard_context_answer',   WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
 
-  // CSS：仅队列内显示，编辑态隐藏，贴近原生
-  try {
-    await plugin.app.registerCSS('cfc-queue-scope', `
-      /* 仅在复习队列内显示 */
-      .rn-queue__content .cfc-container { margin: 6px 0 0; padding: 0; font-size: 0.92rem; line-height: 1.45; color: var(--rn-clr-text, #1f2328); }
-      .rn-queue__content .cfc-title { display: none; color: var(--rn-clr-text-secondary, #57606a); font-weight: 600; margin-bottom: 4px; }
-
-      /* 列表与条目样式，避免默认圆点与过大缩进 */
-      .rn-queue__content .cfc-list { list-style: none; margin: 0; padding-left: 0; }
-      .rn-queue__content .cfc-item { margin: 5px 0; white-space: pre-wrap; }
-
-      /* 原生风格树形连线：行距与容器（连线由组件内联实现，CSS 仅负责布局） */
-      .rn-queue__content .cfc-list > li.cfc-item.rnmm-row { margin: 0 !important; padding: 4px 0; }
-      .rn-queue__content .rnmm-row { display: flex; align-items: stretch; }
-      .rn-queue__content .rnmm-branch { width: 28px; position: relative; flex: 0 0 28px; min-height: 1.45em; }
-      /* 当使用内联连线时，禁用伪元素以避免重复渲染 */
-      .rn-queue__content .rnmm-inline .rnmm-branch::before,
-      .rn-queue__content .rnmm-inline .rnmm-branch::after { content: none !important; display: none !important; }
-      .rn-queue__content .rnmm-node { display: inline-block; line-height: 1.45; white-space: normal; word-break: break-word; }
-    `);
-  } catch (e) {
-    console.warn('[CFC] CSS register failed', e);
-  }
+  // 已移除 registerCSS，以彻底规避某些沙盒中 "Invalid event setCustomCSS" 的未捕获报错。
+  // 所需样式均以内联形式写在组件里（容器宽度、列表去圆点、行距、连线等）。
 }
 
 async function onDeactivate(_: ReactRNPlugin) {}
