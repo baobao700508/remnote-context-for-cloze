@@ -129,7 +129,16 @@ function Widget() {
     <div ref={rootRef} className="cfc-container" style={{ width: '100%', display: 'block', boxSizing: 'border-box', minWidth: 0, maxWidth: '100%', borderTop: '1px solid var(--rn-clr-border, #e4e8ef)', paddingTop: 6, overflow: 'visible' }}>
       <ul className="cfc-list" style={{ listStyle: 'disc', listStylePosition: 'outside', margin: 0, paddingLeft: 20, paddingBottom: 8, width: '100%', fontSize: '1rem' }}>
         {items.map((it: { id: string; depth: number; text: string }) => (
-          <li key={it.id} className="cfc-item" style={{ marginLeft: `${Math.max(0, it.depth)*20}px`, padding: '2px 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{it.text}</li>
+          <li key={it.id} className="cfc-item" style={{ marginLeft: `${Math.max(0, it.depth)*20}px`, padding: '2px 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {it.text === '[?]' ? (
+              <span style={{
+                display: 'inline-block', padding: '0 8px', borderRadius: 8,
+                background: 'var(--rn-clr-accent-muted, rgba(56,139,253,0.15))',
+                color: 'var(--rn-clr-accent, #0969da)', lineHeight: 1.45,
+                border: '1px solid rgba(56,139,253,0.25)'
+              }}>?</span>
+            ) : it.text}
+          </li>
         ))}
       </ul>
     </div>
