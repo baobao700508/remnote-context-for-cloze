@@ -22,25 +22,27 @@ async function getNearestAnchor(plugin: any, remId: string) {
   }
   return null;
 }
-
-async function collectContext(plugin: any, anchor: any, maxDepth: number, maxNodes: number, excludeChildId?: string) {
+async function collectContextByPathExclusion(plugin: any, anchor: any, pathIds: string[], maxDepth: number, maxNodes: number) {
   const items: { id: string; depth: number; text: string }[] = [];
   let count = 0;
-  async function dfs(rem: any, depth: number) {
+  async function dfs(rem: any, depth: number, pathIndex: number) {
     if (depth > maxDepth || count >= maxNodes) return;
     const children = (await rem.getChildrenRem()) || [];
     for (const ch of children) {
       if (count >= maxNodes) break;
-      if (depth === 1 && excludeChildId && ch._id === excludeChildId) continue; // 排除当前分支
-      const str = await plugin.richText.toString(ch.text || []);
-      items.push({ id: ch._id, depth, text: ClozeMask(str || '') });
-      count++;
-      await dfs(ch, depth + 1);
+      const isPathChild = pathIds[pathIndex + 1] === ch._id;
+      if (!isPathChild) {
+        const str = await plugin.richText.toString(ch.text || []);
+        items.push({ id: ch._id, depth, text: ClozeMask(str || '') });
+        count++;
+      }
+      await dfs(ch, depth + 1, isPathChild ? pathIndex + 1 : pathIndex);
     }
   }
-  await dfs(anchor, 1);
+  await dfs(anchor, 0, 0);
   return items;
 }
+
 
 async function getPathFromAnchorToCurrent(plugin: any, anchorId: string, currentId: string) {
   const path: string[] = [];
@@ -77,9 +79,8 @@ function Widget() {
       let maxNodes = Number((await plugin.settings.getSetting('maxNodes')) ?? 100);
       if (answerMode === 'full') { maxDepth = 999; maxNodes = 10000; }
       const path = await getPathFromAnchorToCurrent(plugin, anchor._id, ctx.remId);
-      const excludeChildId = path.length > 1 ? path[1] : undefined;
-      const items = await collectContext(plugin, anchor, maxDepth, maxNodes, excludeChildId);
-      console.log('[CFC][A] items', items.length);
+      const items = await collectContextByPathExclusion(plugin, anchor, path, maxDepth, maxNodes);
+      console.log('[CFC][A] path.len', path.length, 'items', items.length);
       return { items };
     } catch (e) {
       console.error('[CFC][A] error', e);
