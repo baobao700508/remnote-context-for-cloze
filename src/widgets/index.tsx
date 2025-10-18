@@ -1,3 +1,9 @@
+/*
+  样式约定：
+  - .cfc-omission 用于“其他 Rem 的 Cloze 遮挡” => 黄色省略号
+  - .cfc-current-q 用于“当前 Rem 的 Cloze 遮挡” => 蓝色问号框
+*/
+
 import { declareIndexPlugin, type ReactRNPlugin, WidgetLocation, SelectionType } from '@remnote/plugin-sdk';
 import '../style.css';
 import '../index.css';
