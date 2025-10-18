@@ -131,12 +131,21 @@ function Widget() {
       console.log('[CFC][Q] ctx', ctx);
       if (!ctx?.remId || ctx?.revealed) return { items: [] as { id: string; depth: number; text: string }[] };
       const maskId = await getCurrentCardRemId(plugin, ctx);
-      const anchor = await getNearestAnchor(plugin, maskId || ctx.remId);
-      console.log('[CFC][Q] anchor', anchor?._id || 'none');
-      if (!anchor) return { items: [] };
+      let root = await getNearestAnchor(plugin, maskId || ctx.remId);
+      console.log('[CFC][Q] anchor', root?._id || 'none');
+      if (!root) {
+        // 兜底：若未找到锚点，则用当前 Rem 作为根，保证至少能渲染出子树
+        try {
+          root = await plugin.rem.findOne(maskId || ctx.remId);
+          console.warn('[CFC][Q] no anchor, fallback to current rem', root?._id);
+        } catch (e) {
+          console.error('[CFC][Q] fallback failed', e);
+        }
+        if (!root) return { items: [] };
+      }
       const maxDepth = 999; // 全树展示
       const maxNodes = 10000;
-      const items = await collectFullTreeWithLines(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes);
+      const items = await collectFullTreeWithLines(plugin, root, maskId || ctx.remId, maxDepth, maxNodes);
       console.log('[CFC][Q] items', items.length, 'mask target', maskId || ctx.remId);
       return { items };
     } catch (e) {

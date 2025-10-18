@@ -128,12 +128,20 @@ function Widget() {
       if (!ctx?.revealed) return { items: [] };
       if (answerMode === 'questionOnly') return { items: [] };
       const maskId = await getCurrentCardRemId(plugin, ctx);
-      const anchor = await getNearestAnchor(plugin, maskId || ctx.remId);
-      console.log('[CFC][A] anchor', anchor?._id || 'none');
-      if (!anchor) return { items: [] };
+      let root = await getNearestAnchor(plugin, maskId || ctx.remId);
+      console.log('[CFC][A] anchor', root?._id || 'none');
+      if (!root) {
+        try {
+          root = await plugin.rem.findOne(maskId || ctx.remId);
+          console.warn('[CFC][A] no anchor, fallback to current rem', root?._id);
+        } catch (e) {
+          console.error('[CFC][A] fallback failed', e);
+        }
+        if (!root) return { items: [] };
+      }
       const maxDepth = 999; // 全树
       const maxNodes = 10000; // 全量上限
-      const items = await collectFullTreeWithLines(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes);
+      const items = await collectFullTreeWithLines(plugin, root, maskId || ctx.remId, maxDepth, maxNodes);
       console.log('[CFC][A] items', items.length, 'mask target', maskId || ctx.remId);
       return { items };
     } catch (e) {
