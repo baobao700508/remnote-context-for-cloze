@@ -86,16 +86,13 @@ function Widget() {
     }
   }, [ctx?.remId]) || { items: [] } as any;
 
-  if (!items.length) return debug ? (
-    <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
-  ) : null;
   React.useEffect(() => {
     if (rootRef.current) {
       const w = rootRef.current.clientWidth;
       console.log('[CFC][Q] width] root', w, 'iframe', window.innerWidth);
     }
   }, [items.length]);
-  // gating: 
+  // gating (after all hooks):
   if (ctx?.revealed) return null;
   if (!items.length) return debug ? (
     <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
