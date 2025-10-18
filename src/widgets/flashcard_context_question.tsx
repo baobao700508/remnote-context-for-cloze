@@ -95,7 +95,7 @@ function Widget() {
   ) : null;
   return (
     <div className="cfc-container">
-      <ul className="cfc-list">
+      <ul className="cfc-list" style={{ listStyle: 'none', margin: 0, paddingLeft: 0 }}>
         {items.map((it: { id: string; depth: number; text: string }) => (
           <li key={it.id} className="cfc-item" style={{ paddingLeft: `${Math.max(0, it.depth)*16}px` }}>{it.text}</li>
         ))}
