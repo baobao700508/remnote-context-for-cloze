@@ -71,8 +71,8 @@ async function onActivate(plugin: ReactRNPlugin) {
   }});
 
   // Widget（题面与答案）
-  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.Flashcard, { dimensions: { height: 'auto', width: 'auto' } });
-  await plugin.app.registerWidget('flashcard_context_answer', WidgetLocation.FlashcardAnswer, { dimensions: { height: 'auto', width: 'auto' } });
+  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.Flashcard, { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_answer', WidgetLocation.FlashcardAnswer, { dimensions: { height: 'auto', width: '100%' } });
 
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
   await plugin.app.registerCSS('cfc-queue-scope', `
