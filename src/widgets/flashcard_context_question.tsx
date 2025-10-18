@@ -66,12 +66,7 @@ function Widget() {
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), []) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
 
-  // Only show on question (front) phase
-  if (ctx && ctx.revealed) {
-    return null;
-  }
-
-
+  // 统一 hooks 顺序：不在此处提前 return；在后面再做 gating
   const { items } = useRunAsync(async () => {
     try {
       console.log('[CFC][Q] ctx', ctx);
@@ -100,6 +95,11 @@ function Widget() {
       console.log('[CFC][Q] width] root', w, 'iframe', window.innerWidth);
     }
   }, [items.length]);
+  // gating: 
+  if (ctx?.revealed) return null;
+  if (!items.length) return debug ? (
+    <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
+  ) : null;
   return (
     <div ref={rootRef} className="cfc-container" style={{ width: '100%', display: 'block', boxSizing: 'border-box', minWidth: 0, maxWidth: '100%' }}>
       <ul className="cfc-list" style={{ listStyle: 'none', margin: 0, paddingLeft: 0, width: '100%' }}>
