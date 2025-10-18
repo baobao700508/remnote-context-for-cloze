@@ -75,9 +75,9 @@ __p+='`),v}),c+=`';
 
     /* \u88AB\u201C\u663E\u793A\u51FA\u6765\u7684 cloze\u201D\u6761\u76EE\u4E0B\u5212\u7EBF\u63D0\u793A\uFF08\u4EC5\u89C6\u89C9\u6807\u8BC6\uFF09 */
     .rn-queue__content .cfc-revealed-cloze {
-      display: inline-block;
-      border-bottom: 2px solid var(--rn-clr-accent, #0969da);
-      padding-bottom: 1px;
-      vertical-align: text-bottom;
+      text-decoration: underline;
+      text-decoration-color: var(--rn-clr-accent, #0969da);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 2px;
     }
   `;try{await oe.app.registerCSS("cfc-queue-scope",Re)}catch(Ae){console.error("[CFC][CSS] registerCSS failed",Ae);try{await oe.app.registerCSS("cfc-queue-scope-fallback",Re)}catch{}}}async function Of(oe){}(0,Go.declareIndexPlugin)(bf,Of)})();
