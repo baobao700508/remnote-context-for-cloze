@@ -98,6 +98,91 @@ async function collectFullTreeWithLines(plugin: any, root: any, currentRemId: st
   await dfs(root, 0, []);
   return items;
 }
+// 构建“从根/锚点到当前节点”的路径，并仅展开“当前节点”的子树
+async function collectPathAndCurrentSubtree(
+  plugin: any,
+  root: any,
+  currentRemId: string,
+  maxDepth: number,
+  maxNodes: number
+) {
+  const items: { id: string; depth: number; text: string; continues: boolean[] }[] = [];
+  let count = 0;
+
+  // 1) 取当前 Rem
+  const current = await plugin.rem.findOne(currentRemId);
+  if (!current) return items;
+
+  // 2) 自下而上收集到 root（含 root、含 current），再翻转
+  const pathRev: any[] = [current];
+  let p = current;
+  while (p && p._id !== root._id && p.parent) {
+    const pr = await plugin.rem.findOne(p.parent);
+    if (!pr) break;
+    pathRev.push(pr);
+    p = pr;
+  }
+  const path = pathRev.reverse();
+  // 如果没能走到 root，则将 root 作为起点补齐
+  if (!path.length || path[0]._id !== root._id) {
+    path.unshift(root);
+  }
+
+  // 3) 计算每一层路径节点在其父级中的“是否还有后续兄弟”
+  const pathHasNext: boolean[] = [];
+  for (let i = 1; i < path.length; i++) {
+    const parent = path[i - 1];
+    const node = path[i];
+    const children = (await parent.getChildrenRem()) || [];
+    const idx = children.findIndex((c: any) => c._id === node._id);
+    pathHasNext.push(idx >= 0 && idx < children.length - 1);
+  }
+
+  // 4) 输出路径节点（不展开其兄弟）
+  let continuesPrefix: boolean[] = [];
+  for (let i = 0; i < path.length; i++) {
+    if (count >= maxNodes) break;
+    const r = path[i];
+    const id = r._id;
+    const depth = i;
+    let text = '';
+    if (id === currentRemId) {
+      text = '[?]';
+    } else {
+      const str = await stringifyWithClozeMask(plugin, r.text || []);
+      text = ClozeMask(str || '');
+    }
+    items.push({ id, depth, text, continues: [...continuesPrefix] });
+    count++;
+    if (i < pathHasNext.length) {
+      continuesPrefix = [...continuesPrefix, pathHasNext[i]];
+    }
+  }
+
+  if (count >= maxNodes) return items;
+
+  // 5) 只展开“当前节点”的子树
+  async function dfsSub(rem: any, depthBase: number, continues: boolean[]) {
+    const children = (await rem.getChildrenRem()) || [];
+    const n = children.length;
+    for (let idx = 0; idx < n; idx++) {
+      if (count >= maxNodes) break;
+      const ch = children[idx];
+      const hasNextHere = idx < n - 1;
+      const id = ch._id;
+      const depth = depthBase + 1;
+      const str = await stringifyWithClozeMask(plugin, ch.text || []);
+      const text = ClozeMask(str || '');
+      items.push({ id, depth, text, continues: [...continues, hasNextHere] });
+      count++;
+      if (count >= maxNodes) break;
+      await dfsSub(ch, depth, [...continues, hasNextHere]);
+    }
+  }
+  await dfsSub(current, path.length - 1, [...continuesPrefix]);
+  return items;
+}
+
 
 
 
@@ -145,8 +230,9 @@ function Widget() {
       }
       const maxDepth = 999; // 全树展示
       const maxNodes = 10000;
-      const items = await collectFullTreeWithLines(plugin, root, maskId || ctx.remId, maxDepth, maxNodes);
+      const items = await collectPathAndCurrentSubtree(plugin, root, maskId || ctx.remId, maxDepth, maxNodes);
       console.log('[CFC][Q] items', items.length, 'mask target', maskId || ctx.remId);
+      console.log('[CFC][Q] items sample', items.slice(0, 20));
       return { items };
     } catch (e) {
       console.error('[CFC][Q] error', e);
@@ -169,7 +255,7 @@ function Widget() {
     <div ref={rootRef} className="cfc-container" style={{ width: '100%', display: 'block', boxSizing: 'border-box', minWidth: 0, maxWidth: '100%' }}>
       <ul className="cfc-list rnmm-inline" style={{ listStyle: 'none', margin: 0, paddingLeft: 0, width: '100%' }}>
         {items.map((it: { id: string; depth: number; text: string; continues: boolean[] }) => (
-          <li key={it.id} className="cfc-item rnmm-row" style={{ padding: '4px 0', margin: 0 }}>
+          <li key={it.id} className="cfc-item rnmm-row" style={{ padding: 0, margin: 0, display: 'flex' }}>
             {Array.from({ length: Math.max(0, it.depth) }).map((_, d, arr) => {
               const isLast = d === arr.length - 1;
               const cont = it.continues[d];
@@ -183,7 +269,9 @@ function Widget() {
                     flex: '0 0 28px',
                     minHeight: '1.45em',
                     display: 'inline-block',
-                    borderLeft: `2px solid ${cont ? '#c8d1dc' : 'transparent'}`
+                    borderLeft: `2px solid ${cont ? '#c8d1dc' : 'transparent'}`,
+                    padding: '2px 0',
+                    boxSizing: 'border-box'
                   }}
                 >
                   {isLast ? (
@@ -199,7 +287,7 @@ function Widget() {
                 </span>
               );
             })}
-            <span className="rnmm-node" style={{ lineHeight: 1.45 }}>{it.text}</span>
+            <span className="rnmm-node" style={{ lineHeight: 1.45, padding: '2px 0' }}>{it.text}</span>
           </li>
         ))}
       </ul>
