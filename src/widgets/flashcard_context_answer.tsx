@@ -39,6 +39,18 @@ async function getNearestAnchor(plugin: any, remId: string) {
   }
   return null;
 }
+async function getTopAncestor(plugin: any, rem: any) {
+  let cur = rem;
+  let guard = 0;
+  while (cur?.parent && guard < 100) {
+    const p = await plugin.rem.findOne(cur.parent);
+    if (!p) break;
+    cur = p;
+    guard++;
+  }
+  return cur;
+}
+
 async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number) {
   const items: { id: string; depth: number; text: string }[] = [];
   let count = 0;
@@ -211,8 +223,9 @@ function Widget() {
       console.log('[CFC][A] anchor', root?._id || 'none');
       if (!root) {
         try {
-          root = await plugin.rem.findOne(maskId || ctx.remId);
-          console.warn('[CFC][A] no anchor, fallback to current rem', root?._id);
+          const cur = await plugin.rem.findOne(maskId || ctx.remId);
+          root = cur ? await getTopAncestor(plugin, cur) : cur;
+          console.warn('[CFC][A] no anchor, fallback to top ancestor', root?._id);
         } catch (e) {
           console.error('[CFC][A] fallback failed', e);
         }
