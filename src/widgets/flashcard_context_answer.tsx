@@ -23,7 +23,7 @@ async function getNearestAnchor(plugin: any, remId: string) {
   return null;
 }
 
-async function collectContext(plugin: any, anchor: any, maxDepth: number, maxNodes: number) {
+async function collectContext(plugin: any, anchor: any, maxDepth: number, maxNodes: number, excludeChildId?: string) {
   const items: { id: string; depth: number; text: string }[] = [];
   let count = 0;
   async function dfs(rem: any, depth: number) {
@@ -31,6 +31,7 @@ async function collectContext(plugin: any, anchor: any, maxDepth: number, maxNod
     const children = (await rem.getChildrenRem()) || [];
     for (const ch of children) {
       if (count >= maxNodes) break;
+      if (depth === 1 && excludeChildId && ch._id === excludeChildId) continue; // 排除当前分支
       const str = await plugin.richText.toString(ch.text || []);
       items.push({ id: ch._id, depth, text: ClozeMask(str || '') });
       count++;
@@ -39,6 +40,20 @@ async function collectContext(plugin: any, anchor: any, maxDepth: number, maxNod
   }
   await dfs(anchor, 1);
   return items;
+}
+
+async function getPathFromAnchorToCurrent(plugin: any, anchorId: string, currentId: string) {
+  const path: string[] = [];
+  const seen = new Set<string>();
+  let cur = await plugin.rem.findOne(currentId);
+  while (cur && cur._id !== anchorId && !seen.has(cur._id)) {
+    seen.add(cur._id);
+    path.push(cur._id);
+    cur = cur.parent ? await plugin.rem.findOne(cur.parent) : null;
+  }
+  if (cur?._id !== anchorId) return [];
+  path.push(anchorId);
+  return path.reverse();
 }
 
 function Widget() {
@@ -61,7 +76,9 @@ function Widget() {
       let maxDepth = Number((await plugin.settings.getSetting('maxDepth')) ?? 3);
       let maxNodes = Number((await plugin.settings.getSetting('maxNodes')) ?? 100);
       if (answerMode === 'full') { maxDepth = 999; maxNodes = 10000; }
-      const items = await collectContext(plugin, anchor, maxDepth, maxNodes);
+      const path = await getPathFromAnchorToCurrent(plugin, anchor._id, ctx.remId);
+      const excludeChildId = path.length > 1 ? path[1] : undefined;
+      const items = await collectContext(plugin, anchor, maxDepth, maxNodes, excludeChildId);
       console.log('[CFC][A] items', items.length);
       return { items };
     } catch (e) {
@@ -74,11 +91,10 @@ function Widget() {
   if (!ctx?.revealed) return null;
 
   if (!items.length) return debug ? (
-    <div className="cfc-container"><div className="cfc-title">Context</div><div className="cfc-empty">No context (no anchor or empty)</div></div>
+    <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
   ) : null;
   return (
     <div className="cfc-container">
-      <div className="cfc-title">Context</div>
       <ul className="cfc-list">
         {items.map((it: { id: string; depth: number; text: string }) => (
           <li key={it.id} className="cfc-item" style={{ paddingLeft: `${(it.depth-1)*16}px` }}>{it.text}</li>
