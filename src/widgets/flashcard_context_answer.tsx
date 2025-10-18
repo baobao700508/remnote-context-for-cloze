@@ -22,7 +22,7 @@ function richHasCloze(rich: any[]): boolean {
 }
 function revealClozeInHTML(html: string): string {
   try {
-    const underline = '<span class="cfc-revealed-cloze" style="display:inline-block;border-bottom:2px solid var(--rn-clr-accent, #0969da);padding-bottom:1px;vertical-align:text-bottom">$1</span>';
+    const underline = '<span class="cfc-revealed-cloze" style="text-decoration:underline;text-decoration-color:var(--rn-clr-accent, #0969da);text-decoration-thickness:2px;text-underline-offset:2px">$1</span>';
     return html
       .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, underline)
       .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, underline);
