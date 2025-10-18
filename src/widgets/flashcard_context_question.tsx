@@ -22,11 +22,12 @@ function richHasCloze(rich: any[]): boolean {
   return false;
 }
 function revealClozeInHTML(html: string): string {
-  // 将 {{c1::文本}} 或 {{<id>::文本}}（可带 ::hint）替换为 纯文本“文本”
+  // 将 {{c1::文本}} 或 {{<id>::文本}}（可带 ::hint）替换为“仅对 cloze 内容加下划线”的 HTML 片段
   try {
+    const underline = '<span class="cfc-revealed-cloze" style="display:inline-block;border-bottom:2px solid var(--rn-clr-accent, #0969da);padding-bottom:1px;vertical-align:text-bottom">$1</span>';
     return html
-      .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, '$1')
-      .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, '$1');
+      .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, underline)
+      .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, underline);
   } catch { return html; }
 }
 // mode: 'ellipsis'（黄省略号） | 'question'（蓝问号） | 'none'（不掩码，显示原文并解包 cloze）
@@ -202,13 +203,9 @@ function Widget() {
         <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />
       );
     }
-    if (shouldMask === false && it.hasCloze) { try { const dbg = (window as any).plugin_debug || true; if (dbg) console.log('[CFC][Q] underline apply', it.id); } catch {}
+    if (shouldMask === false && it.hasCloze) {
       return (
-        <span
-          className="cfc-revealed-cloze"
-          style={{ fontSize: '1rem', display:'inline-block', borderBottom: '2px solid var(--rn-clr-accent, #0969da)', paddingBottom: 1, verticalAlign: 'text-bottom' }}
-          dangerouslySetInnerHTML={{ __html: it.html }}
-        />
+        <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />
       );
     }
     return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;

@@ -22,9 +22,10 @@ function richHasCloze(rich: any[]): boolean {
 }
 function revealClozeInHTML(html: string): string {
   try {
+    const underline = '<span class="cfc-revealed-cloze" style="display:inline-block;border-bottom:2px solid var(--rn-clr-accent, #0969da);padding-bottom:1px;vertical-align:text-bottom">$1</span>';
     return html
-      .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, '$1')
-      .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, '$1');
+      .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, underline)
+      .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, underline);
   } catch { return html; }
 }
 // mode: 'ellipsis' | 'question' | 'none'
@@ -197,13 +198,8 @@ function Widget() {
       );
     }
     if (shouldMask === false && it.hasCloze) {
-      try { const dbg = (window as any).plugin_debug || true; if (dbg) console.log('[CFC][A] underline apply', it.id); } catch {}
       return (
-        <span
-          className="cfc-revealed-cloze"
-          style={{ fontSize: '1rem', display:'inline-block', borderBottom: '2px solid var(--rn-clr-accent, #0969da)', paddingBottom: 1, verticalAlign: 'text-bottom' }}
-          dangerouslySetInnerHTML={{ __html: it.html }}
-        />
+        <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />
       );
     }
     return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
