@@ -10,8 +10,7 @@ type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
 // 基于 RichText 的逐元素掩码（HTML 版）：凡含 cloze 标记(cId)的文本元素，替换为占位符，再使用 SDK 转为 HTML
 const ELLIPSIS_TOKEN = '[[[CFC_EL]]]';
 const ELLIPSIS_HTML = '<span class="cfc-omission" style="display:inline-block;padding:0 10px;border-radius:8px;line-height:1.45;background:var(--rn-clr-warning-muted, rgba(255,212,0,0.15));color:var(--rn-clr-warning, #b58900);border:1px solid rgba(255,212,0,0.3)">…</span>';
-const QUESTION_TOKEN = '[[[CFC_QM]]]';
-const QUESTION_HTML = '<span class="cfc-current-q" style="display:inline-block;padding:0 10px;border-radius:8px;line-height:1.45;background:var(--rn-clr-accent-muted, rgba(56,139,253,0.15));color:var(--rn-clr-accent,#0969da);border:1px solid rgba(56,139,253,0.25)">?</span>';
+const QUESTION_HTML = '<span class="cfc-question" style="display:inline-block;padding:0 10px;border-radius:8px;line-height:1.45;background:var(--rn-clr-accent-muted, rgba(56,139,253,0.15));color:var(--rn-clr-accent, #0969da);border:1px solid rgba(56,139,253,0.25)">?</span>';
 function richHasCloze(rich: any[]): boolean {
   if (!Array.isArray(rich)) return false;
   const hasAnyCloze = (obj: any) => !!(obj?.cId || obj?.hiddenCloze || obj?.revealedCloze || obj?.latexClozes?.length || Object.keys(obj||{}).some(k => /cloze/i.test(k)));
@@ -28,9 +27,10 @@ function revealClozeInHTML(html: string): string {
       .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, '$1');
   } catch { return html; }
 }
-async function richToHTMLWithClozeMask(plugin: any, rich: any[], shouldMask: boolean): Promise<string> {
+// mode: 'ellipsis' | 'question' | 'none'
+async function richToHTMLWithClozeMask(plugin: any, rich: any[], mode: 'ellipsis' | 'question' | 'none'): Promise<string> {
   if (!Array.isArray(rich)) return '';
-  if (!shouldMask) {
+  if (mode === 'none') {
     try {
       const html = await plugin.richText.toHTML(rich);
       const finalHtml = revealClozeInHTML(html);
@@ -62,38 +62,14 @@ async function richToHTMLWithClozeMask(plugin: any, rich: any[], shouldMask: boo
   }
   try {
     const html = await plugin.richText.toHTML(masked);
-    const finalHtml = html.replaceAll(ELLIPSIS_TOKEN, ELLIPSIS_HTML);
-    try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] rich->html', { rich, masked, html, finalHtml }); } catch {}
-    return finalHtml;
-  } catch {
-    // 兜底：退化为纯文本
-    const s = await plugin.richText.toString(masked as any);
-    return (s || '').replace(/\[\u2026\]|\[…\]/g, ELLIPSIS_HTML);
-async function richToHTMLWithClozeQuestion(plugin: any, rich: any[]): Promise<string> {
-  if (!Array.isArray(rich)) return '';
-  const masked: any[] = [];
-  const hasAnyCloze = (obj: any) => !!(obj?.cId || obj?.hiddenCloze || obj?.revealedCloze || obj?.latexClozes?.length || Object.keys(obj||{}).some(k => /cloze/i.test(k)));
-  for (const el of rich) {
-    if (typeof el === 'string') { masked.push(el); continue; }
-    const i = (el as any)?.i;
-    if (i === 'm' || i === 'x') {
-      const hc = hasAnyCloze(el);
-      if (hc) masked.push({ i: 'm', text: QUESTION_TOKEN }); else masked.push(el);
-    } else {
-      masked.push(el);
-    }
-  }
-  try {
-    const html = await plugin.richText.toHTML(masked);
-    const finalHtml = html.replaceAll(QUESTION_TOKEN, QUESTION_HTML);
-    try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] rich->html question', { rich, masked, html, finalHtml }); } catch {}
+    const replacement = mode === 'question' ? QUESTION_HTML : ELLIPSIS_HTML;
+    const finalHtml = html.replaceAll(ELLIPSIS_TOKEN, replacement);
+    try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] rich->html', { rich, masked, html, finalHtml, mode }); } catch {}
     return finalHtml;
   } catch {
     const s = await plugin.richText.toString(masked as any);
-    return (s || '').replace(/\?/, QUESTION_HTML);
-  }
-}
-
+    const replacement = mode === 'question' ? QUESTION_HTML : ELLIPSIS_HTML;
+    return (s || '').replace(/\[\u2026\]|\[…\]/g, replacement);
   }
 }
 
@@ -132,11 +108,11 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
       isCurrent = true;
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
-      html = await richToHTMLWithClozeQuestion(plugin, rich);
+      html = await richToHTMLWithClozeMask(plugin, rich, 'question');
     } else {
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
-      html = await richToHTMLWithClozeMask(plugin, rich, shouldMask);
+      html = await richToHTMLWithClozeMask(plugin, rich, shouldMask ? 'ellipsis' : 'none');
 
     }
     items.push({ id, depth, html, isCurrent, hasCloze });
@@ -217,7 +193,15 @@ function Widget() {
   const renderItem = (it: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }) => {
     if (it.isCurrent) {
       return (
-        <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />
+        <>
+          <span style={{
+            display: 'inline-block', padding: '0 10px', borderRadius: 8,
+            background: 'var(--rn-clr-accent-muted, rgba(56,139,253,0.15))',
+            color: 'var(--rn-clr-accent, #0969da)', lineHeight: 1.45,
+            border: '1px solid rgba(56,139,253,0.25)', marginRight: 8
+          }}>?</span>
+          <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />
+        </>
       );
     }
     if (shouldMask === false && it.hasCloze) {
