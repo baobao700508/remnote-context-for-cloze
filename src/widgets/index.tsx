@@ -96,6 +96,9 @@ async function onActivate(plugin: ReactRNPlugin) {
       color: var(--rn-clr-warning, #b58900);
       border: 1px solid rgba(255,212,0,0.3);
     }
+
+    /* 被“显示出来的 cloze”条目下划线提示（仅视觉标识） */
+    .rn-queue__content .cfc-revealed-cloze { display: inline-block; border-bottom: 2px solid var(--rn-clr-accent, #0969da); }
   `);
 }
 

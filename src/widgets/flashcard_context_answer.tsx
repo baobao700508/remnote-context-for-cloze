@@ -10,6 +10,15 @@ type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
 // 基于 RichText 的逐元素掩码（HTML 版）：凡含 cloze 标记(cId)的文本元素，替换为占位符，再使用 SDK 转为 HTML
 const ELLIPSIS_TOKEN = '[[[CFC_EL]]]';
 const ELLIPSIS_HTML = '<span class="cfc-omission" style="display:inline-block;padding:0 10px;border-radius:8px;line-height:1.45;background:var(--rn-clr-warning-muted, rgba(255,212,0,0.15));color:var(--rn-clr-warning, #b58900);border:1px solid rgba(255,212,0,0.3)">…</span>';
+function richHasCloze(rich: any[]): boolean {
+  if (!Array.isArray(rich)) return false;
+  const hasAnyCloze = (obj: any) => !!(obj?.cId || obj?.hiddenCloze || obj?.revealedCloze || obj?.latexClozes?.length || Object.keys(obj||{}).some(k => /cloze/i.test(k)));
+  for (const el of rich) {
+    if (typeof el === 'string') continue;
+    if (hasAnyCloze(el)) return true;
+  }
+  return false;
+}
 async function richToHTMLWithClozeMask(plugin: any, rich: any[], shouldMask: boolean): Promise<string> {
   if (!Array.isArray(rich)) return '';
   if (!shouldMask) {
@@ -67,19 +76,21 @@ async function shouldSkipChildAsMeta(plugin: any, rem: any): Promise<boolean> {
   return false;
 }
 async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number, shouldMask: boolean) {
-  const items: { id: string; depth: number; html: string; isCurrent?: boolean }[] = [];
+  const items: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }[] = [];
   let count = 0;
   async function dfs(rem: any, depth: number) {
     if (depth > maxDepth || count >= maxNodes) return;
     const id = rem._id;
-    let html = ''; let isCurrent = false;
+    let html = ''; let isCurrent = false; let hasCloze = false;
     if (id === currentRemId) {
       isCurrent = true;
     } else {
-      html = await richToHTMLWithClozeMask(plugin, rem.text || [], shouldMask);
-      
+      const rich = rem.text || [];
+      hasCloze = richHasCloze(rich);
+      html = await richToHTMLWithClozeMask(plugin, rich, shouldMask);
+
     }
-    items.push({ id, depth, html, isCurrent });
+    items.push({ id, depth, html, isCurrent, hasCloze });
     count++;
     if (count >= maxNodes) return;
     const children = (await rem.getChildrenRem()) || [];
@@ -122,7 +133,7 @@ function Widget() {
 
   const answerMode = useRunAsync(async () => (await plugin.settings.getSetting('answerMode')) ?? 'continue', []);
 
-  const { items } = useRunAsync(async () => {
+  const { items, shouldMask } = useRunAsync(async () => {
     try {
       console.log('[CFC][A] ctx', ctx, 'mode', answerMode);
       if (!ctx?.remId) return { items: [] as { id: string; depth: number; html: string; isCurrent?: boolean }[] };
@@ -144,17 +155,17 @@ function Widget() {
       })();
       const shouldMask = !noHide;
       const items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask);
-      console.log('[CFC][A] items', items.length, 'mask target', maskId || ctx.remId);
-      return { items };
+      console.log('[CFC][A] items', items.length, 'mask target', maskId || ctx.remId, 'shouldMask', shouldMask);
+      return { items, shouldMask };
     } catch (e) {
       console.error('[CFC][A] error', e);
       return { items: [] };
     }
-  }, [ctx?.remId, answerMode]) || { items: [] } as any;
+  }, [ctx?.remId, answerMode]) || { items: [], shouldMask: true } as any;
 
   // Only show on answer (back) phase
   if (!ctx?.revealed) return null;
-  const renderItem = (it: { id: string; depth: number; html: string; isCurrent?: boolean }) => {
+  const renderItem = (it: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }) => {
     if (it.isCurrent) {
       return (
         <span style={{
@@ -165,7 +176,9 @@ function Widget() {
         }}>?</span>
       );
     }
-    return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
+    const content = <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
+    if (shouldMask === false && it.hasCloze) return <span className="cfc-revealed-cloze">{content}</span>;
+    return content;
 
   };
 
@@ -176,7 +189,7 @@ function Widget() {
   return (
     <div className="cfc-container" style={{ width: '100%', borderTop: '1px solid var(--rn-clr-border, #e4e8ef)', paddingTop: 6, overflow: 'visible' }}>
       <ul className="cfc-list" style={{ listStyle: 'disc', listStylePosition: 'outside', margin: 0, paddingLeft: 20, paddingBottom: 8, fontSize: '1.08rem' }}>
-        {items.map((it: { id: string; depth: number; html: string; isCurrent?: boolean }) => (
+        {items.map((it: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }) => (
           <li key={it.id} className="cfc-item" style={{ position:'relative', marginLeft: `${Math.max(0, it.depth)*24}px`, padding: '2px 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {Array.from({ length: Math.max(0, it.depth) }).map((_, i) => (
               <span key={`g-${it.id}-${i}`}
