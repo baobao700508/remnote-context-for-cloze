@@ -71,9 +71,9 @@ async function onActivate(plugin: ReactRNPlugin) {
   }});
 
   // Widget（题面与答案）
-  // 为避免覆盖原始题面/答案内容，将挂载位置调整为 FlashcardUnder（题面/答案下方）。
-  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_answer', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
+  // 迁移到 FlashcardExtraDetail（额外细节区），确保不影响原生卡片正面/答案的主区域展示。
+  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.FlashcardExtraDetail, { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_answer', WidgetLocation.FlashcardExtraDetail, { dimensions: { height: 'auto', width: '100%' } });
 
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
   await plugin.app.registerCSS('cfc-queue-scope', `
