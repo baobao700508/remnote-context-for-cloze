@@ -104,7 +104,7 @@ async function shouldSkipChildAsMeta(plugin: any, rem: any): Promise<boolean> {
   } catch {}
   return false;
 }
-interface QueueAdaptOpts { hideSet: Set<string>; removeSet: Set<string>; applyHideInQueue: boolean; ctxHideSet?: Set<string>; }
+interface QueueAdaptOpts { hideSet: Set<string>; removeSet: Set<string>; applyHideInQueue: boolean; }
 
 async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number, shouldMask: boolean, opts?: QueueAdaptOpts) {
   const items: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }[] = [];
@@ -119,12 +119,7 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
       isCurrent = true;
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
-      // 反转逻辑：若该 Rem 打了 contextHideAllTestOne 标签，则自身在上下文中替换为黄色省略号；否则仍按题目蓝问号样式
-      if (opts?.ctxHideSet?.has(id)) {
-        html = ELLIPSIS_HTML;
-      } else {
-        html = await richToHTMLWithClozeMask(plugin, rich, 'question');
-      }
+      html = await richToHTMLWithClozeMask(plugin, rich, 'question');
     } else {
       // 使用 RichText 级别的 cloze mask 
       const rich = rem.text || [];
@@ -132,9 +127,7 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
       // 根据官方 Remove/Hide 标记覆盖渲染
       _removed = !!opts?.removeSet?.has(id);
       if (!_removed) {
-        if (opts?.ctxHideSet?.has(id)) {
-          html = ELLIPSIS_HTML;
-        } else if (opts?.applyHideInQueue && opts?.hideSet?.has(id)) {
+        if (opts?.applyHideInQueue && opts?.hideSet?.has(id)) {
           html = HIDDEN_IN_QUEUE_HTML;
         } else {
           html = await richToHTMLWithClozeMask(plugin, rich, shouldMask ? 'ellipsis' : 'none');
@@ -208,16 +201,16 @@ function Widget() {
       ]);
 
       const maxNodes = 10000;
-      // 反转逻辑：默认（未打标签）不掩码（显示原文+蓝色下划线）；打标签时仅将该 Rem 自身替换为黄色省略号
-      const ctxHideSet: Set<string> = await (async () => {
+      const noHide = await (async () => {
         try {
           const power = await plugin.powerup.getPowerupByCode('contextHideAllTestOne');
           const tagged = power ? await power.taggedRem() : [];
-          return new Set((tagged||[]).map((r:any)=>r._id));
-        } catch { return new Set<string>(); }
+          const set = new Set((tagged||[]).map((r:any)=>r._id));
+          return set.has(maskId || ctx.remId);
+        } catch { return false; }
       })();
-      const shouldMask = false;
-      let items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask, { hideSet, removeSet, ctxHideSet, applyHideInQueue: true });
+      const shouldMask = noHide;
+      let items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask, { hideSet, removeSet, applyHideInQueue: true });
       // No Hierarchy：如果当前题目被标记，则移除所有祖先行
       if (noHSet.has(maskId || ctx.remId)) {
         const cur = items.find(x => (x as any).isCurrent);
