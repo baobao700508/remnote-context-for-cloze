@@ -87,7 +87,7 @@ async function onActivate(plugin: ReactRNPlugin) {
     .rn-queue__content .cfc-item { margin: 5px 0; white-space: pre-wrap; }
 
     /* 原生风格树形连线：行距与容器（连线由组件内联实现，CSS 仅负责布局） */
-    .rn-queue__content .cfc-list > li.cfc-item.rnmm-row { margin: 4px 0 !important; padding: 0; }
+    .rn-queue__content .cfc-list > li.cfc-item.rnmm-row { margin: 0 !important; padding: 4px 0; }
     .rn-queue__content .rnmm-row { display: flex; align-items: stretch; }
     .rn-queue__content .rnmm-branch { width: 28px; position: relative; flex: 0 0 28px; min-height: 1.45em; }
     /* 当使用内联连线时，禁用伪元素以避免重复渲染 */

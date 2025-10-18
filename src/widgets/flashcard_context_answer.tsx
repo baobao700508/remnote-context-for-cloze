@@ -152,7 +152,7 @@ function Widget() {
     <div className="cfc-container" style={{ width: '100%' }}>
       <ul className="cfc-list rnmm-inline" style={{ listStyle: 'none', margin: 0, paddingLeft: 0 }}>
         {items.map((it: { id: string; depth: number; text: string; continues: boolean[] }) => (
-          <li key={it.id} className="cfc-item rnmm-row" style={{ margin: '4px 0' }}>
+          <li key={it.id} className="cfc-item rnmm-row" style={{ padding: '4px 0' }}>
             {Array.from({ length: Math.max(0, it.depth) }).map((_, d, arr) => {
               const isLast = d === arr.length - 1;
               const cont = it.continues[d];
