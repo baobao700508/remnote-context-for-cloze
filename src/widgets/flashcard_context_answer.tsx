@@ -10,8 +10,11 @@ type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
 // 基于 RichText 的逐元素掩码（HTML 版）：凡含 cloze 标记(cId)的文本元素，替换为占位符，再使用 SDK 转为 HTML
 const ELLIPSIS_TOKEN = '[[[CFC_EL]]]';
 const ELLIPSIS_HTML = '<span class="cfc-omission" style="display:inline-block;padding:0 10px;border-radius:8px;line-height:1.45;background:var(--rn-clr-warning-muted, rgba(255,212,0,0.15));color:var(--rn-clr-warning, #b58900);border:1px solid rgba(255,212,0,0.3)">…</span>';
-async function richToHTMLWithClozeMask(plugin: any, rich: any[]): Promise<string> {
+async function richToHTMLWithClozeMask(plugin: any, rich: any[], shouldMask: boolean): Promise<string> {
   if (!Array.isArray(rich)) return '';
+  if (!shouldMask) {
+    try { return await plugin.richText.toHTML(rich); } catch { try { return await plugin.richText.toString(rich); } catch { return ''; } }
+  }
   const masked: any[] = [];
   for (const el of rich) {
     if (typeof el === 'string') { masked.push(el); continue; }
@@ -63,7 +66,7 @@ async function shouldSkipChildAsMeta(plugin: any, rem: any): Promise<boolean> {
   } catch {}
   return false;
 }
-async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number) {
+async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number, shouldMask: boolean) {
   const items: { id: string; depth: number; html: string; isCurrent?: boolean }[] = [];
   let count = 0;
   async function dfs(rem: any, depth: number) {
@@ -73,7 +76,7 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
     if (id === currentRemId) {
       isCurrent = true;
     } else {
-      html = await richToHTMLWithClozeMask(plugin, rem.text || []);
+      html = await richToHTMLWithClozeMask(plugin, rem.text || [], shouldMask);
       
     }
     items.push({ id, depth, html, isCurrent });
@@ -131,7 +134,16 @@ function Widget() {
       if (!anchor) return { items: [] };
       const maxDepth = 999; // 全树
       const maxNodes = 10000; // 全量上限
-      const items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes);
+      const noHide = await (async () => {
+        try {
+          const power = await plugin.powerup.getPowerupByCode('contextHideAllTestOne');
+          const tagged = power ? await power.taggedRem() : [];
+          const set = new Set((tagged||[]).map((r:any)=>r._id));
+          return set.has(maskId || ctx.remId);
+        } catch { return false; }
+      })();
+      const shouldMask = !noHide;
+      const items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask);
       console.log('[CFC][A] items', items.length, 'mask target', maskId || ctx.remId);
       return { items };
     } catch (e) {

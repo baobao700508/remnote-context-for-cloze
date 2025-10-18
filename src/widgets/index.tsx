@@ -3,6 +3,7 @@ import '../style.css';
 import '../index.css';
 
 const POW_CODE = 'contextForCloze';
+const POW_CODE_NOHIDE = 'contextHideAllTestOne';
 
 async function onActivate(plugin: ReactRNPlugin) {
   // 设置项
@@ -22,6 +23,7 @@ async function onActivate(plugin: ReactRNPlugin) {
 
   // Power-Up
   await plugin.app.registerPowerup({ name: 'Context for Cloze', code: POW_CODE, description: '为 Cloze 复习提供邻近上下文（显示层）', options: { slots: [] } });
+  await plugin.app.registerPowerup({ name: 'Context Hide All Test One', code: POW_CODE_NOHIDE, description: '当前卡片被标记后：上下文树中不隐藏其他 Rem 的 Cloze（显示原始富文本）', options: { slots: [] } });
 
   // 命令：为选中 Rem 添加 Power-Up（支持多选）
   const runAddPowerupCommand = async (powerup: string) => {
@@ -38,6 +40,7 @@ async function onActivate(plugin: ReactRNPlugin) {
   };
 
   await plugin.app.registerCommand({ id: 'add-context-for-cloze', name: 'Add Context for Cloze', quickCode: 'cfc', action: async () => runAddPowerupCommand(POW_CODE) });
+  await plugin.app.registerCommand({ id: 'add-context-hide-all-test-one', name: 'Add Context Hide All Test One', quickCode: 'cfcnohide', action: async () => runAddPowerupCommand(POW_CODE_NOHIDE) });
 
   await plugin.app.registerCommand({ id: 'cfc-debug', name: 'CFC: Debug Probe', quickCode: 'cfcdbg', action: async () => {
     try {
