@@ -64,6 +64,8 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
   await dfs(root, 0);
   return items;
 
+}
+
 // 基于 DFS 生成“是否在各层继续画竖线”的标记，用于纯 CSS 原生风格连线
 async function collectFullTreeWithLines(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number) {
   const items: { id: string; depth: number; text: string; continues: boolean[] }[] = [];
