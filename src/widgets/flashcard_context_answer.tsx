@@ -31,13 +31,21 @@ function richHasCloze(rich: any[]): boolean {
 }
 function revealClozeInHTML(html: string): string {
   try {
-    const underline = '<span class="cfc-revealed-cloze" style="text-decoration:underline;text-decoration-color:var(--rn-clr-accent, #0969da);text-decoration-thickness:2px;text-underline-offset:2px;background-color:var(--rn-clr-accent-muted, rgba(56,139,253,0.15))">$1</span>';
+    const underline = '<span class="cfc-revealed-cloze" style="text-decoration:underline;text-decoration-color:var(--rn-clr-accent, #0969da);text-decoration-thickness:2px;text-underline-offset:2px">$1</span>';
     return html
       .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, underline)
       .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, underline);
   } catch { return html; }
 }
 // mode: 'ellipsis' | 'question' | 'none'
+function addClozeRevealHighlight(html: string): string {
+  try {
+    // 仅增强我们自己插入的 cfc-revealed-cloze 包裹，不影响原始富文本内部样式
+    return html.replace(/<span class=\"cfc-revealed-cloze\" style=\"([^"]*)\">/g,
+      (_m, s1) => `<span class="cfc-revealed-cloze" style="${s1};background:var(--rn-clr-accent-muted, rgba(56,139,253,0.15));border-radius:3px;padding:0 2px">`);
+  } catch { return html; }
+}
+
 async function richToHTMLWithClozeMask(plugin: any, rich: any[], mode: 'ellipsis' | 'question' | 'none'): Promise<string> {
   if (!Array.isArray(rich)) return '';
   if (mode === 'none') {
@@ -121,6 +129,9 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
       hasCloze = richHasCloze(rich);
       // 在卡片背面，当前节点应显示原文并对 Cloze 内容加下划线
       html = await richToHTMLWithClozeMask(plugin, rich, 'none');
+      // 为当前题目 Rem 的 cloze 原文添加浅蓝荧光背景，不影响上下文其他 Rem
+      html = addClozeRevealHighlight(html);
+
     } else {
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
