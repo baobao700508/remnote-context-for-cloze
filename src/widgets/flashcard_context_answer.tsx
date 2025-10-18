@@ -103,6 +103,9 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
     let html = ''; let isCurrent = false; let hasCloze = false;
     if (id === currentRemId) {
       isCurrent = true;
+      const rich = rem.text || [];
+      hasCloze = richHasCloze(rich);
+      html = await richToHTMLWithClozeMask(plugin, rich, true);
     } else {
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
@@ -187,12 +190,15 @@ function Widget() {
   const renderItem = (it: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }) => {
     if (it.isCurrent) {
       return (
-        <span style={{
-          display: 'inline-block', padding: '0 10px', borderRadius: 8,
-          background: 'var(--rn-clr-accent-muted, rgba(56,139,253,0.15))',
-          color: 'var(--rn-clr-accent, #0969da)', lineHeight: 1.45,
-          border: '1px solid rgba(56,139,253,0.25)'
-        }}>?</span>
+        <>
+          <span style={{
+            display: 'inline-block', padding: '0 10px', borderRadius: 8,
+            background: 'var(--rn-clr-accent-muted, rgba(56,139,253,0.15))',
+            color: 'var(--rn-clr-accent, #0969da)', lineHeight: 1.45,
+            border: '1px solid rgba(56,139,253,0.25)', marginRight: 8
+          }}>?</span>
+          <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />
+        </>
       );
     }
     if (shouldMask === false && it.hasCloze) {
