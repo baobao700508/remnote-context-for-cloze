@@ -109,7 +109,7 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
       isCurrent = true;
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
-      // 在卡片背面（Answer）当前节点应显示原文+下划线
+      // 在卡片背面，当前节点应显示原文并对 Cloze 内容加下划线
       html = await richToHTMLWithClozeMask(plugin, rich, 'none');
     } else {
       const rich = rem.text || [];
