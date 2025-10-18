@@ -4,6 +4,15 @@ import * as React from 'react';
 
 const POW_CODE = 'contextForCloze';
 
+
+const HIDE_IN_QUEUE = 'hideInQueue';
+const REMOVE_FROM_QUEUE = 'removeFromQueue';
+const NO_HIERARCHY = 'noHierarchy';
+
+
+const HIDDEN_IN_QUEUE_HTML = '<span style="opacity:.6;color:var(--rn-clr-text-secondary,#57606a);font-style:italic">Hidden in queue</span>';
+interface QueueAdaptOpts { hideSet: Set<string>; removeSet: Set<string>; yellowSet?: Set<string>; applyHideInQueue: boolean; }
+
 type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
 
 
@@ -98,13 +107,14 @@ async function shouldSkipChildAsMeta(plugin: any, rem: any): Promise<boolean> {
   } catch {}
   return false;
 }
-async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number, shouldMask: boolean) {
+async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number, shouldMask: boolean, opts?: QueueAdaptOpts) {
   const items: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }[] = [];
   let count = 0;
   async function dfs(rem: any, depth: number) {
     if (depth > maxDepth || count >= maxNodes) return;
     const id = rem._id;
     let html = ''; let isCurrent = false; let hasCloze = false;
+    let _removed = false;
     if (id === currentRemId) {
       isCurrent = true;
       const rich = rem.text || [];
@@ -114,10 +124,19 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
     } else {
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
-      html = await richToHTMLWithClozeMask(plugin, rich, shouldMask ? 'ellipsis' : 'none');
+      _removed = !!opts?.removeSet?.has(id);
+      if (!_removed) {
+        if (opts?.applyHideInQueue && opts?.hideSet?.has(id)) {
+          html = HIDDEN_IN_QUEUE_HTML;
+        } else if (opts?.yellowSet?.has(id)) {
+          html = ELLIPSIS_HTML;
+        } else {
+          html = await richToHTMLWithClozeMask(plugin, rich, shouldMask ? 'ellipsis' : 'none');
+        }
+      }
 
     }
-    items.push({ id, depth, html, isCurrent, hasCloze });
+    if (!_removed) items.push({ id, depth, html, isCurrent, hasCloze });
     count++;
     if (count >= maxNodes) return;
     const children = (await rem.getChildrenRem()) || [];
@@ -127,7 +146,7 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
         try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] skip meta child', ch?._id); } catch {}
         continue;
       }
-      await dfs(ch, depth + 1);
+      await dfs(ch, _removed ? depth : depth + 1);
     }
   }
   await dfs(root, 0);
@@ -173,17 +192,29 @@ function Widget() {
       console.log('[CFC][A] anchor', anchor?._id || 'none');
       if (!anchor) return { items: [] };
       const maxDepth = 999; // 全树
-      const maxNodes = 10000; // 全量上限
-      const noHide = await (async () => {
+      // 读取三种官方 Power-up 的标记集合
+      const [hideSet, removeSet, noHSet] = await Promise.all([
+        (async () => { const p = await plugin.powerup.getPowerupByCode(HIDE_IN_QUEUE); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
+        (async () => { const p = await plugin.powerup.getPowerupByCode(REMOVE_FROM_QUEUE); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
+        (async () => { const p = await plugin.powerup.getPowerupByCode(NO_HIERARCHY); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
+      ]);
+      // 
+      const yellowSet = await (async () => {
         try {
-          const power = await plugin.powerup.getPowerupByCode('contextHideAllTestOne');
-          const tagged = power ? await power.taggedRem() : [];
-          const set = new Set((tagged||[]).map((r:any)=>r._id));
-          return set.has(maskId || ctx.remId);
-        } catch { return false; }
+          const p = await plugin.powerup.getPowerupByCode('contextHideAllTestOne');
+          const t = p ? await p.taggedRem() : [];
+          return new Set((t||[]).map((r:any)=>r._id));
+        } catch { return new Set<string>(); }
       })();
-      const shouldMask = !noHide;
-      const items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask);
+
+      const maxNodes = 10000; // 全量上限
+      // 新逻辑：不再使用 contextHideAllTestOne 控制掩码
+      const shouldMask = true;
+      let items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask, { hideSet, removeSet, yellowSet, applyHideInQueue: false });
+      if (noHSet.has(maskId || ctx.remId)) {
+        const cur = items.find(x => (x as any).isCurrent);
+        if (cur) items = items.filter(x => x.depth >= cur.depth);
+      }
       console.log('[CFC][A] items', items.length, 'mask target', maskId || ctx.remId, 'shouldMask', shouldMask);
       return { items, shouldMask };
     } catch (e) {

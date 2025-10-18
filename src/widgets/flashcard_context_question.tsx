@@ -4,6 +4,12 @@ import * as React from 'react';
 
 const POW_CODE = 'contextForCloze';
 
+
+const HIDE_IN_QUEUE = 'hideInQueue';
+const REMOVE_FROM_QUEUE = 'removeFromQueue';
+const NO_HIERARCHY = 'noHierarchy';
+const HIDDEN_IN_QUEUE_HTML = '<span style="opacity:.6;color:var(--rn-clr-text-secondary,#57606a);font-style:italic">Hidden in queue</span>';
+
 type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
 
 const ClozeMask = (s: string) => s.replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, '[…]');
@@ -98,7 +104,9 @@ async function shouldSkipChildAsMeta(plugin: any, rem: any): Promise<boolean> {
   } catch {}
   return false;
 }
-async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number, shouldMask: boolean) {
+interface QueueAdaptOpts { hideSet: Set<string>; removeSet: Set<string>; yellowSet?: Set<string>; applyHideInQueue: boolean; }
+
+async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number, shouldMask: boolean, opts?: QueueAdaptOpts) {
   const items: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }[] = [];
   let count = 0;
   async function dfs(rem: any, depth: number) {
@@ -106,6 +114,7 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
     // 输出当前节点（包含 root 自身），应用占位/掩码
     const id = rem._id;
     let html = ''; let isCurrent = false; let hasCloze = false;
+    let _removed = false;
     if (id === currentRemId) {
       isCurrent = true;
       const rich = rem.text || [];
@@ -115,11 +124,23 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
       // 使用 RichText 级别的 cloze mask 
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
-      html = await richToHTMLWithClozeMask(plugin, rich, shouldMask ? 'ellipsis' : 'none');
+      // 根据官方 Remove/Hide 标记覆盖渲染
+      _removed = !!opts?.removeSet?.has(id);
+      if (!_removed) {
+        if (opts?.applyHideInQueue && opts?.hideSet?.has(id)) {
+          html = HIDDEN_IN_QUEUE_HTML;
+        } else if (opts?.yellowSet?.has(id)) {
+          html = ELLIPSIS_HTML;
+        } else {
+          html = await richToHTMLWithClozeMask(plugin, rich, shouldMask ? 'ellipsis' : 'none');
+        }
+      }
+
+      // html computed above (Hide/Remove adaptation)
       // 兜底：若未检测到 cId 
-      
+
     }
-    items.push({ id, depth, html, isCurrent, hasCloze });
+    if (!_removed) items.push({ id, depth, html, isCurrent, hasCloze });
     count++;
     if (count >= maxNodes) return;
     // 递归子节点
@@ -130,7 +151,7 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
         try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][Q] skip meta child', ch?._id); } catch {}
         continue;
       }
-      await dfs(ch, depth + 1);
+      await dfs(ch, _removed ? depth : depth + 1);
     }
   }
   await dfs(root, 0);
@@ -174,17 +195,31 @@ function Widget() {
       console.log('[CFC][Q] anchor', anchor?._id || 'none');
       if (!anchor) return { items: [] };
       const maxDepth = 999; // 全树展示
-      const maxNodes = 10000;
-      const noHide = await (async () => {
+      // 读取三种官方 Power-up 的标记集合（用于上下文区域的适配）
+      const [hideSet, removeSet, noHSet] = await Promise.all([
+        (async () => { const p = await plugin.powerup.getPowerupByCode(HIDE_IN_QUEUE); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
+        (async () => { const p = await plugin.powerup.getPowerupByCode(REMOVE_FROM_QUEUE); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
+        (async () => { const p = await plugin.powerup.getPowerupByCode(NO_HIERARCHY); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
+      ]);
+      // 读取 contextHideAllTestOne（用于“被打标签的 Rem 用黄色省略号替换”）
+      const yellowSet = await (async () => {
         try {
-          const power = await plugin.powerup.getPowerupByCode('contextHideAllTestOne');
-          const tagged = power ? await power.taggedRem() : [];
-          const set = new Set((tagged||[]).map((r:any)=>r._id));
-          return set.has(maskId || ctx.remId);
-        } catch { return false; }
+          const p = await plugin.powerup.getPowerupByCode('contextHideAllTestOne');
+          const t = p ? await p.taggedRem() : [];
+          return new Set((t||[]).map((r:any)=>r._id));
+        } catch { return new Set<string>(); }
       })();
-      const shouldMask = !noHide;
-      const items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask);
+
+      const maxNodes = 10000;
+      // 新逻辑：不再使用 contextHideAllTestOne
+      //   
+      const shouldMask = true;
+      let items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask, { hideSet, removeSet, yellowSet, applyHideInQueue: true });
+      // No Hierarchy：如果当前题目被标记，则移除所有祖先行
+      if (noHSet.has(maskId || ctx.remId)) {
+        const cur = items.find(x => (x as any).isCurrent);
+        if (cur) items = items.filter(x => x.depth >= cur.depth);
+      }
       try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][Q] items', items.length, 'mask target', maskId || ctx.remId, 'shouldMask', shouldMask, items.map(x=>({id:x.id, hasCloze:(x as any).hasCloze}))); } catch {}
       return { items, shouldMask };
     } catch (e) {
