@@ -109,7 +109,8 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
       isCurrent = true;
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
-      html = await richToHTMLWithClozeMask(plugin, rich, 'question');
+      // 在卡片背面（Answer）当前节点应显示原文+下划线
+      html = await richToHTMLWithClozeMask(plugin, rich, 'none');
     } else {
       const rich = rem.text || [];
       hasCloze = richHasCloze(rich);
