@@ -54,6 +54,14 @@ async function getNearestAnchor(plugin: any, remId: string) {
   }
   return null;
 }
+async function shouldSkipChildAsMeta(plugin: any, rem: any): Promise<boolean> {
+  try {
+    const s = (await plugin.richText.toString(rem?.text || []) || '').trim();
+    const lower = s.toLowerCase();
+    if (lower === 'size' || s === '大小') return true; // 标题样式元数据（Size/大小）
+  } catch {}
+  return false;
+}
 async function collectFullTree(plugin: any, root: any, currentRemId: string, maxDepth: number, maxNodes: number) {
   const items: { id: string; depth: number; html: string; isCurrent?: boolean }[] = [];
   let count = 0;
@@ -77,6 +85,10 @@ async function collectFullTree(plugin: any, root: any, currentRemId: string, max
     const children = (await rem.getChildrenRem()) || [];
     for (const ch of children) {
       if (count >= maxNodes) break;
+      if (await shouldSkipChildAsMeta(plugin, ch)) {
+        try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][Q] skip meta child', ch?._id); } catch {}
+        continue;
+      }
       await dfs(ch, depth + 1);
     }
   }
