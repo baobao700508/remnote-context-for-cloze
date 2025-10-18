@@ -1,4 +1,6 @@
-import { renderWidget, usePlugin, useRunAsync, useWidgetContext } from '@remnote/plugin-sdk';
+import { renderWidget, usePlugin, useRunAsync } from '@remnote/plugin-sdk';
+import * as React from 'react';
+
 
 const POW_CODE = 'contextForCloze';
 
@@ -41,14 +43,19 @@ async function collectContext(plugin: any, anchor: any, maxDepth: number, maxNod
 
 function Widget() {
   const plugin = usePlugin();
-  const ctx = useWidgetContext() as Ctx;
+  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), []) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
+
+  // Only show on question (front) phase
+  if (ctx && ctx.revealed) {
+    return null;
+  }
 
 
   const { items } = useRunAsync(async () => {
     try {
       console.log('[CFC][Q] ctx', ctx);
-      if (!ctx?.remId) return { items: [] as { id: string; depth: number; text: string }[] };
+      if (!ctx?.remId || ctx?.revealed) return { items: [] as { id: string; depth: number; text: string }[] };
       const anchor = await getNearestAnchor(plugin, ctx.remId);
       console.log('[CFC][Q] anchor', anchor?._id || 'none');
       if (!anchor) return { items: [] };
@@ -70,7 +77,7 @@ function Widget() {
     <div className="cfc-container">
       <div className="cfc-title">Context</div>
       <ul className="cfc-list">
-        {items.map((it) => (
+        {items.map((it: { id: string; depth: number; text: string }) => (
           <li key={it.id} className="cfc-item" style={{ paddingLeft: `${(it.depth-1)*16}px` }}>{it.text}</li>
         ))}
       </ul>
