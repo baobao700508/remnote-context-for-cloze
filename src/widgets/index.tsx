@@ -79,7 +79,7 @@ async function onActivate(plugin: ReactRNPlugin) {
   await plugin.app.registerWidget('flashcard_context_answer',   WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
 
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
-  await plugin.app.registerCSS('cfc-queue-scope', `
+  const CFC_CSS = `
     /* 仅在复习队列内显示 */
     .rn-queue__content .cfc-container { margin: 6px 0 0; padding: 0; font-size: 0.92rem; line-height: 1.45; color: var(--rn-clr-text, #1f2328); }
     .rn-queue__content .cfc-title { display: none; color: var(--rn-clr-text-secondary, #57606a); font-weight: 600; margin-bottom: 4px; }
@@ -104,7 +104,13 @@ async function onActivate(plugin: ReactRNPlugin) {
       padding-bottom: 1px;
       vertical-align: text-bottom;
     }
-  `);
+  `;
+  try {
+    await plugin.app.registerCSS('cfc-queue-scope', CFC_CSS);
+  } catch (e) {
+    console.error('[CFC][CSS] registerCSS failed', e);
+    try { await plugin.app.registerCSS('cfc-queue-scope-fallback', CFC_CSS); } catch {}
+  }
 }
 
 async function onDeactivate(_: ReactRNPlugin) {}

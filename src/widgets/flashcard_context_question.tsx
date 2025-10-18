@@ -20,10 +20,31 @@ function richHasCloze(rich: any[]): boolean {
   }
   return false;
 }
+function revealClozeInHTML(html: string): string {
+  // 将 {{c1::文本}} 或 {{<id>::文本}}（可带 ::hint）替换为 纯文本“文本”
+  try {
+    return html
+      .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, '$1')
+      .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, '$1');
+  } catch { return html; }
+}
 async function richToHTMLWithClozeMask(plugin: any, rich: any[], shouldMask: boolean): Promise<string> {
   if (!Array.isArray(rich)) return '';
   if (!shouldMask) {
-    try { return await plugin.richText.toHTML(rich); } catch { try { return await plugin.richText.toString(rich); } catch { return ''; } }
+    try {
+      const html = await plugin.richText.toHTML(rich);
+      const finalHtml = revealClozeInHTML(html);
+      try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][Q] toHTML noMask', { rich, html, finalHtml }); } catch {}
+      return finalHtml;
+    } catch {
+      try {
+        const s = await plugin.richText.toString(rich);
+        const txt = revealClozeInHTML(s || '');
+        // 退化为纯文本时，最小化 HTML 包裹
+        const safe = txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br/>');
+        return safe;
+      } catch { return ''; }
+    }
   }
   const masked: any[] = [];
   for (const el of rich) {
@@ -156,7 +177,7 @@ function Widget() {
       })();
       const shouldMask = !noHide;
       const items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask);
-      console.log('[CFC][Q] items', items.length, 'mask target', maskId || ctx.remId, 'shouldMask', shouldMask);
+      try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][Q] items', items.length, 'mask target', maskId || ctx.remId, 'shouldMask', shouldMask, items.map(x=>({id:x.id, hasCloze:(x as any).hasCloze}))); } catch {}
       return { items, shouldMask };
     } catch (e) {
       console.error('[CFC][Q] error', e);
@@ -181,8 +202,14 @@ function Widget() {
         }}>?</span>
       );
     }
-    if (shouldMask === false && it.hasCloze) {
-      return <span className="cfc-revealed-cloze" style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
+    if (shouldMask === false && it.hasCloze) { try { const dbg = (window as any).plugin_debug || true; if (dbg) console.log('[CFC][Q] underline apply', it.id); } catch {}
+      return (
+        <span
+          className="cfc-revealed-cloze"
+          style={{ fontSize: '1rem', display:'inline-block', borderBottom: '2px solid var(--rn-clr-accent, #0969da)', paddingBottom: 1, verticalAlign: 'text-bottom' }}
+          dangerouslySetInnerHTML={{ __html: it.html }}
+        />
+      );
     }
     return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
   };

@@ -19,10 +19,29 @@ function richHasCloze(rich: any[]): boolean {
   }
   return false;
 }
+function revealClozeInHTML(html: string): string {
+  try {
+    return html
+      .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, '$1')
+      .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, '$1');
+  } catch { return html; }
+}
 async function richToHTMLWithClozeMask(plugin: any, rich: any[], shouldMask: boolean): Promise<string> {
   if (!Array.isArray(rich)) return '';
   if (!shouldMask) {
-    try { return await plugin.richText.toHTML(rich); } catch { try { return await plugin.richText.toString(rich); } catch { return ''; } }
+    try {
+      const html = await plugin.richText.toHTML(rich);
+      const finalHtml = revealClozeInHTML(html);
+      try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] toHTML noMask', { rich, html, finalHtml }); } catch {}
+      return finalHtml;
+    } catch {
+      try {
+        const s = await plugin.richText.toString(rich);
+        const txt = revealClozeInHTML(s || '');
+        const safe = txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br/>');
+        return safe;
+      } catch { return ''; }
+    }
   }
   const masked: any[] = [];
   for (const el of rich) {
@@ -177,7 +196,14 @@ function Widget() {
       );
     }
     if (shouldMask === false && it.hasCloze) {
-      return <span className="cfc-revealed-cloze" style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
+      try { const dbg = (window as any).plugin_debug || true; if (dbg) console.log('[CFC][A] underline apply', it.id); } catch {}
+      return (
+        <span
+          className="cfc-revealed-cloze"
+          style={{ fontSize: '1rem', display:'inline-block', borderBottom: '2px solid var(--rn-clr-accent, #0969da)', paddingBottom: 1, verticalAlign: 'text-bottom' }}
+          dangerouslySetInnerHTML={{ __html: it.html }}
+        />
+      );
     }
     return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
 
