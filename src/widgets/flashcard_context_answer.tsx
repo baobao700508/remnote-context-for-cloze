@@ -6,22 +6,22 @@ const POW_CODE = 'contextForCloze';
 
 type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
 
-const ClozeMask = (s: string) => s.replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, '[…]');
 
 // 基于 RichText 的逐元素掩码（HTML 版）：凡含 cloze 标记(cId)的文本元素，替换为占位符，再使用 SDK 转为 HTML
 const ELLIPSIS_TOKEN = '[[[CFC_EL]]]';
+const ELLIPSIS_HTML = '<span class="cfc-omission" style="display:inline-block;padding:0 10px;border-radius:8px;line-height:1.45;background:var(--rn-clr-warning-muted, rgba(255,212,0,0.15));color:var(--rn-clr-warning, #b58900);border:1px solid rgba(255,212,0,0.3)">…</span>';
 async function richToHTMLWithClozeMask(plugin: any, rich: any[]): Promise<string> {
   if (!Array.isArray(rich)) return '';
   const masked: any[] = [];
   for (const el of rich) {
     if (typeof el === 'string') { masked.push(el); continue; }
     const i = (el as any)?.i;
+    const hasAnyCloze = (obj: any) => !!(obj?.cId || obj?.hiddenCloze || obj?.revealedCloze || obj?.latexClozes?.length || Object.keys(obj||{}).some(k => /cloze/i.test(k)));
     if (i === 'm') {
-      const hasCloze = (el as any)?.cId || (el as any)?.hiddenCloze || (el as any)?.revealedCloze;
-      if (hasCloze) masked.push({ i: 'm', text: ELLIPSIS_TOKEN });
-      else masked.push(el);
+      const hasCloze = hasAnyCloze(el);
+      if (hasCloze) masked.push({ i: 'm', text: ELLIPSIS_TOKEN }); else masked.push(el);
     } else if (i === 'x') { // LaTeX
-      const hasCloze = (el as any)?.cId || ((el as any)?.latexClozes && (el as any)?.latexClozes.length);
+      const hasCloze = hasAnyCloze(el);
       if (hasCloze) masked.push({ i: 'm', text: ELLIPSIS_TOKEN }); else masked.push(el);
     } else {
       masked.push(el);
@@ -29,30 +29,17 @@ async function richToHTMLWithClozeMask(plugin: any, rich: any[]): Promise<string
   }
   try {
     const html = await plugin.richText.toHTML(masked);
-    return html.replaceAll(ELLIPSIS_TOKEN, '<span class="cfc-omission">…</span>');
+    const finalHtml = html.replaceAll(ELLIPSIS_TOKEN, ELLIPSIS_HTML);
+    try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] rich->html', { rich, masked, html, finalHtml }); } catch {}
+    return finalHtml;
   } catch {
     // 兜底：退化为纯文本
     const s = await plugin.richText.toString(masked as any);
-    return (s || '').replace(/\[\u2026\]|\[…\]/g, '<span class="cfc-omission">…</span>');
+    return (s || '').replace(/\[\u2026\]|\[…\]/g, ELLIPSIS_HTML);
   }
 }
 
 // RichText 
-async function stringifyWithClozeMask(plugin: any, rich: any[]): Promise<string> {
-  if (!Array.isArray(rich)) return '';
-  const out: string[] = [];
-  for (const el of rich) {
-    if (typeof el === 'string') { out.push(el); continue; }
-    const i = (el as any)?.i;
-    if (i === 'm') {
-      const hasCloze = (el as any)?.cId || (el as any)?.hiddenCloze || (el as any)?.revealedCloze;
-      out.push(hasCloze ? '[…]' : ((el as any)?.text ?? ''));
-    } else {
-      try { out.push(await plugin.richText.toString([el])); } catch { /* noop */ }
-    }
-  }
-  return out.join('');
-}
 
 async function getNearestAnchor(plugin: any, remId: string) {
   const power = await plugin.powerup.getPowerupByCode(POW_CODE);
@@ -156,7 +143,6 @@ function Widget() {
     }
     return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
 
-    return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} /> as any;
   };
 
 
