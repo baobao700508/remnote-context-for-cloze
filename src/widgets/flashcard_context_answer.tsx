@@ -187,16 +187,18 @@ function Widget() {
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as any;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
   const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
-  const isMainSlot = (() => {
+  const slot = (() => {
     const loc: any = ctx?.location ?? (ctx as any)?.widgetLocation ?? (ctx as any)?.slot ?? (ctx as any)?.mountLocation;
+    let known = false; let isMain = false;
     if (typeof loc === 'number') {
-      try { return loc === (WidgetLocation as any).Flashcard; } catch { return false; }
+      known = true;
+      try { isMain = (loc === (WidgetLocation as any).Flashcard); } catch { isMain = false; }
+    } else if (typeof loc === 'string') {
+      known = true; const s = loc.toLowerCase();
+      isMain = s.includes('flashcard') && !s.includes('under');
     }
-    if (typeof loc === 'string') {
-      const s = loc.toLowerCase();
-      return s.includes('flashcard') && !s.includes('under');
-    }
-    return false;
+    if (debug) console.log('[CFC][A][slot]', { override, known, isMain, loc, ctx });
+    return { known, isMain, loc } as const;
   })();
 
 
@@ -318,7 +320,7 @@ function Widget() {
   // Only show on answer (back) phase
   if (!ctx?.revealed) return null;
   // 覆盖模式 gating：仅在 Flashcard 主区域实例渲染；默认模式：仅在 FlashcardUnder 实例渲染
-  if (override) { if (!isMainSlot) return null; } else { if (isMainSlot) return null; }
+  if (override) { if (slot.known && !slot.isMain) return null; } else { if (slot.known && slot.isMain) return null; }
   if (!enabled) return null; // 未标记我们 Power-Up（祖先链无 anchor）=> 完全透明
   const renderItem = (it: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }) => {
     if (it.isCurrent) {

@@ -183,16 +183,18 @@ function Widget() {
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as any;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
   const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
-  const isMainSlot = (() => {
+  const slot = (() => {
     const loc: any = ctx?.location ?? (ctx as any)?.widgetLocation ?? (ctx as any)?.slot ?? (ctx as any)?.mountLocation;
+    let known = false; let isMain = false;
     if (typeof loc === 'number') {
-      try { return loc === (WidgetLocation as any).Flashcard; } catch { return false; }
+      known = true;
+      try { isMain = (loc === (WidgetLocation as any).Flashcard); } catch { isMain = false; }
+    } else if (typeof loc === 'string') {
+      known = true; const s = loc.toLowerCase();
+      isMain = s.includes('flashcard') && !s.includes('under');
     }
-    if (typeof loc === 'string') {
-      const s = loc.toLowerCase();
-      return s.includes('flashcard') && !s.includes('under');
-    }
-    return false;
+    if (debug) console.log('[CFC][Q][slot]', { override, known, isMain, loc, ctx });
+    return { known, isMain, loc } as const;
   })();
 
   // 统一 hooks 顺序：不在此处提前 return；在后面再做 gating
@@ -291,7 +293,7 @@ function Widget() {
   // gating (after all hooks):
   if (ctx?.revealed) return null;
   // 覆盖模式 gating：仅在 Flashcard 主区域实例渲染；默认模式：仅在 FlashcardUnder 实例渲染
-  if (override) { if (!isMainSlot) return null; } else { if (isMainSlot) return null; }
+  if (override) { if (slot.known && !slot.isMain) return null; } else { if (slot.known && slot.isMain) return null; }
   if (!enabled) return null; // 未标记我们 Power-Up（上溯链无 anchor）=> 完全透明，不渲染任何内容
   if (!items.length) return debug ? (
     <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
