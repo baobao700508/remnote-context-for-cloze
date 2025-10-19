@@ -31,7 +31,7 @@ function richHasCloze(rich: any[]): boolean {
 }
 function revealClozeInHTML(html: string): string {
   try {
-    const underline = '<span class="cfc-revealed-cloze" style="text-decoration:underline;text-decoration-color:var(--rn-clr-accent);text-decoration-thickness:2px;text-underline-offset:2px">$1</span>';
+    const underline = '<span class="cfc-revealed-cloze" style="text-decoration:underline;text-decoration-color:var(--rn-clr-accent, #0969da);text-decoration-thickness:2px;text-underline-offset:2px">$1</span>';
     return html
       .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, underline)
       .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, underline);
@@ -42,7 +42,7 @@ function addClozeRevealHighlight(html: string): string {
   try {
     // 仅增强我们自己插入的 cfc-revealed-cloze 包裹，不影响原始富文本内部样式
     return html.replace(/<span class=\"cfc-revealed-cloze\" style=\"([^"]*)\">/g,
-      (_m, s1) => `<span class="cfc-revealed-cloze" style="${s1};background:var(--rn-clr-accent-muted);border-radius:3px;padding:0 2px">`);
+      (_m, s1) => `<span class="cfc-revealed-cloze" style="${s1};background:var(--rn-clr-accent-muted, rgba(56,139,253,0.15));border-radius:3px;padding:0 2px">`);
   } catch { return html; }
 }
 

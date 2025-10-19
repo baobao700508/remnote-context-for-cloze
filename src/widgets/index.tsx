@@ -99,10 +99,10 @@ async function onActivate(plugin: ReactRNPlugin) {
 
     /* 被“显示出来的 cloze”条目下划线提示（仅视觉标识） */
     .rn-queue__content .cfc-revealed-cloze {
-      text-decoration: underline;
-      text-decoration-color: var(--rn-clr-accent);
-      text-decoration-thickness: 2px;
-      text-underline-offset: 2px;
+      text-decoration: underline !important;
+      text-decoration-color: var(--rn-clr-accent, #0969da) !important;
+      text-decoration-thickness: 2px !important;
+      text-underline-offset: 2px !important;
     }
   `;
   try {
@@ -111,6 +111,30 @@ async function onActivate(plugin: ReactRNPlugin) {
     console.error('[CFC][CSS] registerCSS failed', e);
     try { await plugin.app.registerCSS('cfc-queue-scope-fallback', CFC_CSS); } catch {}
   }
+
+  // Mirror RemNote theme variables into plugin scope to ensure var(--rn-clr-*) are available
+  try {
+    const cs = getComputedStyle(document.documentElement);
+    const vars = [
+      '--rn-clr-text',
+      '--rn-clr-text-secondary',
+      '--rn-clr-accent',
+      '--rn-clr-accent-muted',
+      '--rn-clr-warning',
+      '--rn-clr-warning-muted',
+      '--rn-clr-border'
+    ];
+    const pairs = vars
+      .map(v => [v, (cs.getPropertyValue(v) || '').trim()] as [string, string])
+      .filter(([, val]) => !!val);
+    if (pairs.length) {
+      const decls = pairs.map(([k, v]) => `${k}: ${v};`).join(' ');
+      await plugin.app.registerCSS('cfc-theme-mirror', `:root { ${decls} }`);
+    }
+  } catch (e) {
+    console.warn('[CFC][CSS] theme mirror failed', e);
+  }
+
 }
 
 async function onDeactivate(_: ReactRNPlugin) {}

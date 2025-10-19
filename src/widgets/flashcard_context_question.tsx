@@ -30,7 +30,7 @@ function richHasCloze(rich: any[]): boolean {
 function revealClozeInHTML(html: string): string {
   // 将 {{c1::文本}} 或 {{<id>::文本}}（可带 ::hint）替换为“仅对 cloze 内容加下划线”的 HTML 片段
   try {
-    const underline = '<span class="cfc-revealed-cloze" style="text-decoration:underline;text-decoration-color:var(--rn-clr-accent);text-decoration-thickness:2px;text-underline-offset:2px">$1</span>';
+    const underline = '<span class="cfc-revealed-cloze" style="text-decoration:underline;text-decoration-color:var(--rn-clr-accent, #0969da);text-decoration-thickness:2px;text-underline-offset:2px">$1</span>';
     return html
       .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, underline)
       .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, underline);
