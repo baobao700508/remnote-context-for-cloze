@@ -189,7 +189,7 @@ function Widget() {
 
 
 
-  const { items, shouldMask } = useRunAsync(async () => {
+  const { items, shouldMask, hasAnchor } = useRunAsync(async () => {
     try {
       console.log('[CFC][A] ctx', ctx);
       if (!ctx?.remId) return { items: [] as { id: string; depth: number; html: string; isCurrent?: boolean }[] };
@@ -197,7 +197,7 @@ function Widget() {
       const maskId = await getCurrentCardRemId(plugin, ctx);
       const anchor = await getNearestAnchor(plugin, maskId || ctx.remId);
       console.log('[CFC][A] anchor', anchor?._id || 'none');
-      if (!anchor) return { items: [] };
+      if (!anchor) return { items: [], hasAnchor: false } as any;
       const maxDepth = 999; // 全树
       // 读取三种官方 Power-up 的标记集合
       const [hideSet, removeSet, noHSet] = await Promise.all([
@@ -256,7 +256,7 @@ function Widget() {
         let html = await richToHTMLWithClozeMask(plugin, rich, 'none');
         html = addClozeRevealHighlight(html);
         const items = [{ id: cur?._id || (maskId || ctx.remId), depth: 0, html, isCurrent: true, hasCloze }];
-        return { items, shouldMask: false } as any;
+        return { items, shouldMask: false, hasAnchor: true } as any;
       }
 
 
@@ -272,12 +272,12 @@ function Widget() {
       const shouldMask = noHide;
       let items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask, { hideSet, removeSet, applyHideInQueue: false });
       console.log('[CFC][A] items', items.length, 'mask target', maskId || ctx.remId, 'shouldMask', shouldMask);
-      return { items, shouldMask };
+      return { items, shouldMask, hasAnchor: true } as any;
     } catch (e) {
       console.error('[CFC][A] error', e);
-      return { items: [] };
+      return { items: [], hasAnchor: true } as any;
     }
-  }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true } as any;
+  }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true, hasAnchor: true } as any;
 
   // Only show on answer (back) phase
   if (!ctx?.revealed) return null;
@@ -297,6 +297,9 @@ function Widget() {
   };
 
 
+  if (hasAnchor === false) return debug ? (
+    <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
+  ) : null;
   if (!items.length) return debug ? (
     <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
   ) : null;
