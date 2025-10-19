@@ -209,7 +209,7 @@ function Widget() {
           return set.has(maskId || ctx.remId);
         } catch { return false; }
       })();
-      const shouldMask = noHide;
+      const shouldMask = !noHide;
       let items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask, { hideSet, removeSet, applyHideInQueue: true });
       // No Hierarchy：如果当前题目被标记，则移除所有祖先行
       if (noHSet.has(maskId || ctx.remId)) {

@@ -217,7 +217,7 @@ function Widget() {
           return set.has(maskId || ctx.remId);
         } catch { return false; }
       })();
-      const shouldMask = noHide;
+      const shouldMask = !noHide;
       let items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask, { hideSet, removeSet, applyHideInQueue: false });
       if (noHSet.has(maskId || ctx.remId)) {
         const cur = items.find(x => (x as any).isCurrent);
