@@ -198,7 +198,13 @@ function Widget() {
       const anchor = await getNearestAnchor(plugin, maskId || ctx.remId);
       console.log('[CFC][A] anchor', anchor?._id || 'none');
       if (!anchor) return { items: [], enabled: false };
-      const maxDepth = 999; // 全树
+      // 从设置接入 Max Depth / Max Nodes（提供健壮的数值兜底）
+      const rawDepth = await plugin.settings.getSetting('maxDepth');
+      const rawNodes = await plugin.settings.getSetting('maxNodes');
+      let _md = Number(rawDepth); if (!Number.isFinite(_md) || _md < 0) _md = 999;
+      let _mn = Number(rawNodes); if (!Number.isFinite(_mn) || _mn < 0) _mn = 10000;
+      const maxDepth = _md;
+      const maxNodes = _mn;
       // 读取三种官方 Power-up 的标记集合
       const [hideSet, removeSet, noHSet] = await Promise.all([
         (async () => { const p = await plugin.powerup.getPowerupByCode(HIDE_IN_QUEUE); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
@@ -260,7 +266,7 @@ function Widget() {
       }
 
 
-      const maxNodes = 10000; // 全量上限
+
       const noHide = await (async () => {
         try {
           const power = await plugin.powerup.getPowerupByCode('contextHideAllTestOne');
