@@ -6,11 +6,24 @@ const POW_CODE = 'contextForCloze';
 const POW_CODE_NOHIDE = 'contextHideAllTestOne';
 
 async function onActivate(plugin: ReactRNPlugin) {
+  // 兼容沙箱：禁用/拦截 registerCSS（防止 setCustomCSS 事件）
+  try {
+    const anyApp: any = (plugin as any).app;
+    if (anyApp && typeof anyApp.registerCSS === 'function') {
+      anyApp.registerCSS = async (_id: string, _css: string) => {
+        console.warn('[CFC][CSS] registerCSS call blocked (sandbox-safe).');
+        return;
+      };
+      console.log('[CFC][CSS] registerCSS has been patched to no-op');
+    }
+  } catch (e) {
+    console.warn('[CFC][CSS] registerCSS patch failed', e);
+  }
+
   // 设置项
   await plugin.settings.registerNumberSetting({ id: 'maxDepth', title: 'Max Depth', description: '最大递归深度', defaultValue: 3 });
   await plugin.settings.registerNumberSetting({ id: 'maxNodes', title: 'Max Nodes', description: '节点数量上限', defaultValue: 100 });
   await plugin.settings.registerBooleanSetting({ id: 'debug', title: 'Debug Mode', description: '启用调试（控制台日志与占位提示）', defaultValue: false });
-  await plugin.settings.registerBooleanSetting({ id: 'overrideNativeContent', title: '覆盖原生显示内容', description: '启用后，插件上下文内容将替换 Flashcard 原生显示区域；禁用时，插件内容显示在原生内容下方', defaultValue: false });
   await plugin.app.toast('Context for Cloze activated');
   console.log('[CFC] Plugin activated');
 
@@ -66,11 +79,9 @@ async function onActivate(plugin: ReactRNPlugin) {
   }});
 
   // Widget（题面与答案）
-  // 为便于上下文中识别挂载位置，分别使用不同的 widgetId 进行注册（仍复用同一渲染模块）
-  await plugin.app.registerWidget('flashcard_context_question_under', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_answer_under',   WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_question_main',  WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_answer_main',    WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
+  // 统一挂载到 FlashcardUnder（不覆盖原生主区域；题面/答案阶段由组件 gating 控制显示）
+  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_answer',   WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
 
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
   const CFC_CSS = `
