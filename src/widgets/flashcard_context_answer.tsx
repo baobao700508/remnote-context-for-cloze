@@ -1,4 +1,4 @@
-import { renderWidget, usePlugin, useRunAsync } from '@remnote/plugin-sdk';
+import { renderWidget, usePlugin, useRunAsync, WidgetLocation } from '@remnote/plugin-sdk';
 import * as React from 'react';
 
 
@@ -184,13 +184,20 @@ function Widget() {
   const plugin = usePlugin();
   const [tick, setTick] = React.useState(0);
   React.useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 300); return () => clearInterval(id); }, []);
-  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
+  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as any;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
   const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
-  const widgetId = (ctx as any)?.widgetId || '';
-  const isUnderMount = /_under$/i.test(widgetId);
-  const isOverMount  = /_over$/i.test(widgetId);
-  const lastLogRef = React.useRef<string>('');
+  const isMainSlot = (() => {
+    const loc: any = ctx?.location ?? (ctx as any)?.widgetLocation ?? (ctx as any)?.slot ?? (ctx as any)?.mountLocation;
+    if (typeof loc === 'number') {
+      try { return loc === (WidgetLocation as any).Flashcard; } catch { return false; }
+    }
+    if (typeof loc === 'string') {
+      const s = loc.toLowerCase();
+      return s.includes('flashcard') && !s.includes('under');
+    }
+    return false;
+  })();
 
 
 
@@ -307,22 +314,11 @@ function Widget() {
       return { items: [], enabled: false };
     }
   }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true, enabled: false } as any;
-  // Debug：仅在变更时打印，避免刷屏
-  try {
-    const key = `A:${widgetId}:${override}`;
-    if (debug && key !== lastLogRef.current) {
-      lastLogRef.current = key;
-      console.log('[CFC][A] widget/override', { widgetId, override });
-    }
-  } catch {}
-
-  // 基于 widgetId 的位置 gating（准确可靠）
-  if (override && isUnderMount) return null;    // 覆盖模式：仅在 over mount 显示
-  if (!override && isOverMount) return null;    // 默认模式：仅在 under mount 显示
-
 
   // Only show on answer (back) phase
   if (!ctx?.revealed) return null;
+  // 覆盖模式 gating：仅在 Flashcard 主区域实例渲染；默认模式：仅在 FlashcardUnder 实例渲染
+  if (override) { if (!isMainSlot) return null; } else { if (isMainSlot) return null; }
   if (!enabled) return null; // 未标记我们 Power-Up（祖先链无 anchor）=> 完全透明
   const renderItem = (it: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }) => {
     if (it.isCurrent) {

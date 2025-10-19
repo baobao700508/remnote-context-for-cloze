@@ -1,4 +1,4 @@
-import { renderWidget, usePlugin, useRunAsync } from '@remnote/plugin-sdk';
+import { renderWidget, usePlugin, useRunAsync, WidgetLocation } from '@remnote/plugin-sdk';
 import * as React from 'react';
 
 
@@ -180,13 +180,20 @@ function Widget() {
   const plugin = usePlugin();
   const [tick, setTick] = React.useState(0);
   React.useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 300); return () => clearInterval(id); }, []);
-  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
+  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as any;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
   const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
-  const widgetId = (ctx as any)?.widgetId || '';
-  const isUnderMount = /_under$/i.test(widgetId);
-  const isOverMount  = /_over$/i.test(widgetId);
-  const lastLogRef = React.useRef<string>('');
+  const isMainSlot = (() => {
+    const loc: any = ctx?.location ?? (ctx as any)?.widgetLocation ?? (ctx as any)?.slot ?? (ctx as any)?.mountLocation;
+    if (typeof loc === 'number') {
+      try { return loc === (WidgetLocation as any).Flashcard; } catch { return false; }
+    }
+    if (typeof loc === 'string') {
+      const s = loc.toLowerCase();
+      return s.includes('flashcard') && !s.includes('under');
+    }
+    return false;
+  })();
 
   // 统一 hooks 顺序：不在此处提前 return；在后面再做 gating
   const { items, shouldMask, enabled } = useRunAsync(async () => {
@@ -278,30 +285,14 @@ function Widget() {
         <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />
       );
     }
-
     return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
   };
 
   // gating (after all hooks):
   if (ctx?.revealed) return null;
+  // 覆盖模式 gating：仅在 Flashcard 主区域实例渲染；默认模式：仅在 FlashcardUnder 实例渲染
+  if (override) { if (!isMainSlot) return null; } else { if (isMainSlot) return null; }
   if (!enabled) return null; // 未标记我们 Power-Up（上溯链无 anchor）=> 完全透明，不渲染任何内容
-  //  location  override 
-
-  // Debug：仅在变更时打印，避免刷屏
-  try {
-    const key = `Q:${widgetId}:${override}`;
-    if (debug && key !== lastLogRef.current) {
-      lastLogRef.current = key;
-      console.log('[CFC][Q] widget/override', { widgetId, override });
-    }
-  } catch {}
-
-  // 基于 widgetId 的位置 gating（准确可靠）
-  if (override && isUnderMount) return null;    // 覆盖模式：仅在 over mount 显示
-  if (!override && isOverMount) return null;    // 默认模式：仅在 under mount 显示
-
-
-
   if (!items.length) return debug ? (
     <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
   ) : null;
