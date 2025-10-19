@@ -81,7 +81,7 @@ async function onActivate(plugin: ReactRNPlugin) {
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
   const CFC_CSS = `
     /* 仅在复习队列内显示 */
-    .rn-queue__content .cfc-container { margin: 6px 0 0; padding: 0; font-size: 0.92rem; line-height: 1.45; color: var(--rn-clr-text, #1f2328); }
+    .rn-queue__content .cfc-container { margin: 6px 0 0; padding: 0; font-size: 0.92rem; line-height: 1.45; }
     .rn-queue__content .cfc-title { display: none; color: var(--rn-clr-text-secondary, #57606a); font-weight: 600; margin-bottom: 4px; }
     .rn-queue__content .rn-dialog .cfc-container { display: none !important; }
 
@@ -91,16 +91,16 @@ async function onActivate(plugin: ReactRNPlugin) {
 
     /* 黄底省略号徽标（与蓝色问号一致的尺寸/圆角/边框） */
     .rn-queue__content .cfc-omission {
-      display: inline-block; padding: 0 10px; border-radius: 8px; line-height: 1.45;
-      background: var(--rn-clr-warning-muted, rgba(255,212,0,0.15));
-      color: var(--rn-clr-warning, #b58900);
-      border: 1px solid rgba(255,212,0,0.3);
+      display: inline-block; padding: 0 8px; border-radius: 6px; line-height: 1.45;
+      background: var(--rn-clr-warning-muted);
+      color: inherit;
+      border: 0;
     }
 
     /* 被“显示出来的 cloze”条目下划线提示（仅视觉标识） */
     .rn-queue__content .cfc-revealed-cloze {
       text-decoration: underline;
-      text-decoration-color: var(--rn-clr-accent, #0969da);
+      text-decoration-color: var(--rn-clr-accent);
       text-decoration-thickness: 2px;
       text-underline-offset: 2px;
     }

@@ -10,7 +10,7 @@ const REMOVE_FROM_QUEUE = 'removeFromQueue';
 const NO_HIERARCHY = 'noHierarchy';
 
 
-const HIDDEN_IN_QUEUE_HTML = '<span style="opacity:.6;color:var(--rn-clr-text-secondary,#57606a);font-style:italic">Hidden in queue</span>';
+const HIDDEN_IN_QUEUE_HTML = '<span style="opacity:.6;color:var(--rn-clr-text-secondary);font-style:italic">Hidden in queue</span>';
 interface QueueAdaptOpts { hideSet: Set<string>; removeSet: Set<string>; applyHideInQueue: boolean; }
 
 type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
@@ -18,8 +18,8 @@ type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
 
 // 基于 RichText 的逐元素掩码（HTML 版）：凡含 cloze 标记(cId)的文本元素，替换为占位符，再使用 SDK 转为 HTML
 const ELLIPSIS_TOKEN = '[[[CFC_EL]]]';
-const ELLIPSIS_HTML = '<span class="cfc-omission" style="display:inline-block;padding:0 8px;border-radius:6px;line-height:1.2;background:var(--rn-clr-warning-muted);color:inherit;border:0">…</span>';
-const QUESTION_HTML = '<span class="cfc-question" style="display:inline-block;padding:0 10px;border-radius:6px;line-height:1.2;background:var(--rn-clr-accent-muted);color:var(--rn-clr-accent);border:0">?</span>';
+const ELLIPSIS_HTML = '<span class="cfc-omission" style="display:inline-block;padding:0 10px;border-radius:6px;line-height:1.2;background:var(--rn-clr-warning-muted, rgba(255,212,0,0.15));color:var(--rn-clr-warning, #b58900);border:0">…</span>';
+const QUESTION_HTML = '<span class="cfc-question" style="display:inline-block;padding:0 12px;border-radius:6px;line-height:1.2;background:var(--rn-clr-accent-muted, rgba(56,139,253,0.15));color:var(--rn-clr-accent, #0969da);border:0">?</span>';
 function richHasCloze(rich: any[]): boolean {
   if (!Array.isArray(rich)) return false;
   const hasAnyCloze = (obj: any) => !!(obj?.cId || obj?.hiddenCloze || obj?.revealedCloze || obj?.latexClozes?.length || Object.keys(obj||{}).some(k => /cloze/i.test(k)));
@@ -31,7 +31,7 @@ function richHasCloze(rich: any[]): boolean {
 }
 function revealClozeInHTML(html: string): string {
   try {
-    const underline = '<span class="cfc-revealed-cloze" style="text-decoration:underline;text-decoration-color:var(--rn-clr-accent, #0969da);text-decoration-thickness:2px;text-underline-offset:2px">$1</span>';
+    const underline = '<span class="cfc-revealed-cloze" style="text-decoration:underline;text-decoration-color:var(--rn-clr-accent);text-decoration-thickness:2px;text-underline-offset:2px">$1</span>';
     return html
       .replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g, underline)
       .replace(/\{\{[^:{}]+::(.*?)(?:::[^}]*)?\}\}/g, underline);
@@ -42,7 +42,7 @@ function addClozeRevealHighlight(html: string): string {
   try {
     // 仅增强我们自己插入的 cfc-revealed-cloze 包裹，不影响原始富文本内部样式
     return html.replace(/<span class=\"cfc-revealed-cloze\" style=\"([^"]*)\">/g,
-      (_m, s1) => `<span class="cfc-revealed-cloze" style="${s1};background:var(--rn-clr-accent-muted, rgba(56,139,253,0.15));border-radius:3px;padding:0 2px">`);
+      (_m, s1) => `<span class="cfc-revealed-cloze" style="${s1};background:var(--rn-clr-accent-muted);border-radius:3px;padding:0 2px">`);
   } catch { return html; }
 }
 
