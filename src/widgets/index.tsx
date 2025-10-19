@@ -67,10 +67,10 @@ async function onActivate(plugin: ReactRNPlugin) {
 
   // Widget（题面与答案）
   // 同时注册到 Flashcard 与 FlashcardUnder；组件内部根据 overrideNativeContent 与 locationName 自行 gating
-  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_answer',   WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_answer',   WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_question_over',  WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_question_under', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_answer_over',    WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_answer_under',   WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
 
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
   const CFC_CSS = `

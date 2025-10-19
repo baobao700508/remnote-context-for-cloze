@@ -183,7 +183,10 @@ function Widget() {
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
   const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
-  const locationName = (ctx as any)?.locationName || (ctx as any)?.location || '';
+  const widgetId = (ctx as any)?.widgetId || '';
+  const isUnderMount = /_under$/i.test(widgetId);
+  const isOverMount  = /_over$/i.test(widgetId);
+  const lastLogRef = React.useRef<string>('');
 
   // 统一 hooks 顺序：不在此处提前 return；在后面再做 gating
   const { items, shouldMask, enabled } = useRunAsync(async () => {
@@ -284,17 +287,18 @@ function Widget() {
   if (!enabled) return null; // 未标记我们 Power-Up（上溯链无 anchor）=> 完全透明，不渲染任何内容
   //  location  override 
 
-  // Debug: 打印位置与覆盖设置，便于诊断
-  try { if (debug) console.log('[CFC][Q] location/override', { locationName, override }); } catch {}
+  // Debug：仅在变更时打印，避免刷屏
+  try {
+    const key = `Q:${widgetId}:${override}`;
+    if (debug && key !== lastLogRef.current) {
+      lastLogRef.current = key;
+      console.log('[CFC][Q] widget/override', { widgetId, override });
+    }
+  } catch {}
 
-  // 位置 gating（宽松判断）：
-  // - 当 override=true，仅明确在 Under 位置时拦截；未知位置不拦截
-  // - 当 override=false，仅明确在主区域位置时拦截；未知位置不拦截（以保证默认模式尽量显示）
-  const loc = (locationName || '').toString();
-  const isUnder = /Under/i.test(loc);
-  const isMain = /Flashcard/i.test(loc) && !isUnder;
-  if (override && isUnder) return null;
-  if (!override && isMain) return null;
+  // 基于 widgetId 的位置 gating（准确可靠）
+  if (override && isUnderMount) return null;    // 覆盖模式：仅在 over mount 显示
+  if (!override && isOverMount) return null;    // 默认模式：仅在 under mount 显示
 
 
 

@@ -187,7 +187,10 @@ function Widget() {
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
   const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
-  const locationName = (ctx as any)?.locationName || (ctx as any)?.location || '';
+  const widgetId = (ctx as any)?.widgetId || '';
+  const isUnderMount = /_under$/i.test(widgetId);
+  const isOverMount  = /_over$/i.test(widgetId);
+  const lastLogRef = React.useRef<string>('');
 
 
 
@@ -304,14 +307,18 @@ function Widget() {
       return { items: [], enabled: false };
     }
   }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true, enabled: false } as any;
-  // Debug:  location/override 
-  try { if (debug) console.log('[CFC][A] location/override', { locationName, override }); } catch {}
-  //  gating 
-  const locA = (locationName || '').toString();
-  const isUnderA = /Under/i.test(locA);
-  const isMainA = /Flashcard/i.test(locA) && !isUnderA;
-  if (override && isUnderA) return null;
-  if (!override && isMainA) return null;
+  // Debug：仅在变更时打印，避免刷屏
+  try {
+    const key = `A:${widgetId}:${override}`;
+    if (debug && key !== lastLogRef.current) {
+      lastLogRef.current = key;
+      console.log('[CFC][A] widget/override', { widgetId, override });
+    }
+  } catch {}
+
+  // 基于 widgetId 的位置 gating（准确可靠）
+  if (override && isUnderMount) return null;    // 覆盖模式：仅在 over mount 显示
+  if (!override && isOverMount) return null;    // 默认模式：仅在 under mount 显示
 
 
   // Only show on answer (back) phase
