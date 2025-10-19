@@ -184,14 +184,14 @@ function Widget() {
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
 
   // 统一 hooks 顺序：不在此处提前 return；在后面再做 gating
-  const { items, shouldMask, hasAnchor } = useRunAsync(async () => {
+  const { items, shouldMask, enabled } = useRunAsync(async () => {
     try {
       console.log('[CFC][Q] ctx', ctx);
-      if (!ctx?.remId || ctx?.revealed) return { items: [] as { id: string; depth: number; html: string; isCurrent?: boolean }[] };
+      if (!ctx?.remId || ctx?.revealed) return { items: [] as { id: string; depth: number; html: string; isCurrent?: boolean }[], enabled: false };
       const maskId = await getCurrentCardRemId(plugin, ctx);
       const anchor = await getNearestAnchor(plugin, maskId || ctx.remId);
       console.log('[CFC][Q] anchor', anchor?._id || 'none');
-      if (!anchor) return { items: [], hasAnchor: false } as any;
+      if (!anchor) return { items: [], enabled: false };
       const maxDepth = 999; // 全树展示
       // 读取三种官方 Power-up 的标记集合（用于上下文区域的适配）
       const [hideSet, removeSet, noHSet] = await Promise.all([
@@ -208,7 +208,7 @@ function Widget() {
 	        const hasCloze = richHasCloze(rich);
 	        const html = await richToHTMLWithClozeMask(plugin, rich, 'question');
 	        const items = [{ id: cur?._id || (maskId || ctx.remId), depth: 0, html, isCurrent: true, hasCloze }];
-	        return { items, shouldMask: false, hasAnchor: true } as any;
+	        return { items, shouldMask: false, enabled: true } as any;
 	      }
 
 
@@ -225,12 +225,12 @@ function Widget() {
       let items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask, { hideSet, removeSet, applyHideInQueue: true });
       // No Hierarchy：如果当前题目被标记，则移除所有祖先行
       try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][Q] items', items.length, 'mask target', maskId || ctx.remId, 'shouldMask', shouldMask, items.map(x=>({id:x.id, hasCloze:(x as any).hasCloze}))); } catch {}
-      return { items, shouldMask, hasAnchor: true } as any;
+      return { items, shouldMask, enabled: true };
     } catch (e) {
       console.error('[CFC][Q] error', e);
-      return { items: [], hasAnchor: true } as any;
+      return { items: [], enabled: false };
     }
-  }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true, hasAnchor: true } as any;
+  }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true, enabled: false } as any;
 
   React.useEffect(() => {
     if (rootRef.current) {
@@ -254,10 +254,7 @@ function Widget() {
 
   // gating (after all hooks):
   if (ctx?.revealed) return null;
-  // 当未找到任何 contextForCloze 标记祖先时，完全不渲染；仅在 debug 下显示占位
-  if (hasAnchor === false) return debug ? (
-    <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
-  ) : null;
+  if (!enabled) return null; // 未标记我们 Power-Up（上溯链无 anchor）=> 完全透明，不渲染任何内容
   if (!items.length) return debug ? (
     <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
   ) : null;
