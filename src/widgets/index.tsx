@@ -66,11 +66,11 @@ async function onActivate(plugin: ReactRNPlugin) {
   }});
 
   // Widget（题面与答案）
-  // 同时在 Flashcard 与 FlashcardUnder 两个位置注册；由组件内根据 overrideNativeContent 设置进行渲染门控，避免重复显示
-  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_answer',   WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_question', WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
-  await plugin.app.registerWidget('flashcard_context_answer',   WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
+  // 为便于上下文中识别挂载位置，分别使用不同的 widgetId 进行注册（仍复用同一渲染模块）
+  await plugin.app.registerWidget('flashcard_context_question_under', WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_answer_under',   WidgetLocation.FlashcardUnder, { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_question_main',  WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
+  await plugin.app.registerWidget('flashcard_context_answer_main',    WidgetLocation.Flashcard,      { dimensions: { height: 'auto', width: '100%' } });
 
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
   const CFC_CSS = `

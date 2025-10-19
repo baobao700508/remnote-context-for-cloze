@@ -188,17 +188,27 @@ function Widget() {
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
   const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
   const slot = (() => {
-    const loc: any = ctx?.location ?? (ctx as any)?.widgetLocation ?? (ctx as any)?.slot ?? (ctx as any)?.mountLocation;
-    let known = false; let isMain = false;
-    if (typeof loc === 'number') {
+    // 优先用 widgetId 判定（我们为不同挂载位置注册了不同的 id）
+    const wid: any = (ctx as any)?.widgetId ?? (ctx as any)?.widgetID ?? (ctx as any)?.id;
+    let known = false; let isMain = false; let hint: any = wid;
+    if (typeof wid === 'string') {
       known = true;
-      try { isMain = (loc === (WidgetLocation as any).Flashcard); } catch { isMain = false; }
-    } else if (typeof loc === 'string') {
-      known = true; const s = loc.toLowerCase();
-      isMain = s.includes('flashcard') && !s.includes('under');
+      const w = wid.toLowerCase();
+      isMain = w.includes('_main');
+    } else {
+      // 回退：尝试从 location 族字段估计
+      const loc: any = ctx?.location ?? (ctx as any)?.widgetLocation ?? (ctx as any)?.slot ?? (ctx as any)?.mountLocation;
+      hint = loc;
+      if (typeof loc === 'number') {
+        known = true;
+        try { isMain = (loc === (WidgetLocation as any).Flashcard); } catch { isMain = false; }
+      } else if (typeof loc === 'string') {
+        known = true; const s = loc.toLowerCase();
+        isMain = s.includes('flashcard') && !s.includes('under');
+      }
     }
-    if (debug) console.log('[CFC][A][slot]', { override, known, isMain, loc, ctx });
-    return { known, isMain, loc } as const;
+    if (debug) console.log('[CFC][A][slot]', { override, known, isMain, hint, ctx });
+    return { known, isMain } as const;
   })();
 
 
