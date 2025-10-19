@@ -44,5 +44,43 @@
 - 若当前卡片不在任何“Context for Cloze”锚点的子树内，则不会显示上下文。
 - 与 No Hierarchy（`noHierarchy`）同时使用时，上下文将仅显示当前题目一行，这是设计预期。
 
-## 反馈
-欢迎提交使用建议或问题反馈，帮助我们进一步改进上下文的呈现体验。
+
+## 示例截图
+
+> 以下截图帮助你直观感受插件在实际复习中的呈现效果。
+
+1) 测试用整体结构（上下文树示意）
+
+![测试时使用的整体结构](https://remnote-user-data.s3.amazonaws.com/zaFqKpkiElkV2UIcTnEPlt0mr09fwkG0FV52yBVdzCJR6nTH0Lb6tEEgRIFht-oEINkdrK8wJF1K3G_VjYmWu-vohCE6RwAez_wvjvR6h-WtUPvVPYpyL0V6XdaGRRlJ.jpeg?loading=false)
+
+- 说明：展示了用于测试的层级结构与锚点（Context for Cloze）所在位置。被锚点覆盖的子树会在复习时作为“上下文树”显示在卡片下方，帮助定位当前题目所在分支。
+
+2) 复习队列显示示例 A（题面阶段，防止线索泄露）
+
+![复习队列显示示例 A](https://remnote-user-data.s3.amazonaws.com/GT9Ausv726feJf22kII7MJhnGCbfhVYFCh5GMtf2mUweNpSQUHn6dtmL0GWSTHzLVnyEJtZjCthc5Rda7aIJ-0eFMO2xhOO6dLqRrvm8SfEzl3FFF3zRx9qR8c0czX5g.jpeg)
+
+- 说明：上下文树显示在卡片下方；题面阶段不会泄露 cloze（填空）答案信息，便于在不打扰答题的前提下获取定位信息。
+
+3) 复习队列显示示例 B（答案阶段，cloze 高亮）
+
+![复习队列显示示例 B](https://remnote-user-data.s3.amazonaws.com/bXoC-aeiey70Hl_jrjmS0MCUzN82TMPYUJF8KGy9iErqMqAQ-5dGy3UdqW4xbW2ezXFZg1uCgDnM4brRKA8Y0Doz87_VLLUZRS4C7i2t4qmCwVvvi8UZHp9MOaXhutc0.jpeg?loading=false)
+
+- 说明：答案阶段继续显示上下文；被“揭示”的 cloze 以蓝色下划线和浅蓝色背景提示，方便对照与回顾。
+
+4) 复习队列显示示例 C（分支/层级对比）
+
+![复习队列显示示例 C](https://remnote-user-data.s3.amazonaws.com/niJfC_INpPkpidUzOw6ZbY4r7e2bIXbK9zuVoCItDPPv3wv8qVl1b25OpTY8fWGC5JRr2jUHNN9TjOaQzuQwSc2qPqRFzBZRZHEY9vCmDJs-Lux3XYfBZapnr52ZEcyV.jpeg?loading=false)
+
+- 说明：通过缩进与条目排列展示祖先、当前、兄弟与子孙节点，帮助你快速识别当前题目在知识结构中的上下文位置。
+
+5) 复习队列显示示例 D（不同内容类型的混排）
+
+![复习队列显示示例 D](https://remnote-user-data.s3.amazonaws.com/j_FQj9RxuQnRqFO4X3Qo64siZY_3nHxoU4vQv-Hy1Op5OcAva_IuBPFlVA1EHAsjeywgP-wBHGrBUfjv82I2V-wJ409_IdO6AOJi8w8xHdIc8DfKH9zF9pjiskwoMlyf.jpeg?loading=false)
+
+- 说明：上下文树对常见富文本场景具备良好可读性；如内容较复杂，可在答案阶段进一步回看原文细节。
+
+6) 复习队列显示示例 E（整体视感）
+
+![复习队列显示示例 E](https://remnote-user-data.s3.amazonaws.com/rSRm6AeAIG7bsA1K74po0wdLr-cfbW9mGaA_Rkdp20qY2A54-2_W8kUy2Y4mkHls_K1CLnhR57677cGcIeBPdBSz_cmpDiTDlTN91M4r184lrhjKT4_f85OUoQ7qLG4h.jpeg?loading=false)
+
+- 说明：展示在不同卡片上的整体视觉效果；你可以结合 Max Depth / Max Nodes 设置平衡信息密度与阅读负担。
