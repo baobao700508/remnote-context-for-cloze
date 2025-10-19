@@ -214,7 +214,7 @@ function Widget() {
       })();
       if (depthToCurrent > maxDepth) {
         try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][Q] over maxDepth', { depthToCurrent, maxDepth }); } catch {}
-        return { items: [], shouldMask: true, enabled: true } as any;
+        return { items: [], enabled: false } as any;
       }
 
       // 读取三种官方 Power-up 的标记集合（用于上下文区域的适配）
