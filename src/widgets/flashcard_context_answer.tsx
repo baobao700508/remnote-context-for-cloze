@@ -188,14 +188,12 @@ function Widget() {
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
 
 
-  const answerMode = useRunAsync(async () => (await plugin.settings.getSetting('answerMode')) ?? 'continue', []);
 
   const { items, shouldMask } = useRunAsync(async () => {
     try {
-      console.log('[CFC][A] ctx', ctx, 'mode', answerMode);
+      console.log('[CFC][A] ctx', ctx);
       if (!ctx?.remId) return { items: [] as { id: string; depth: number; html: string; isCurrent?: boolean }[] };
       if (!ctx?.revealed) return { items: [] };
-      if (answerMode === 'questionOnly') return { items: [] };
       const maskId = await getCurrentCardRemId(plugin, ctx);
       const anchor = await getNearestAnchor(plugin, maskId || ctx.remId);
       console.log('[CFC][A] anchor', anchor?._id || 'none');
@@ -279,7 +277,7 @@ function Widget() {
       console.error('[CFC][A] error', e);
       return { items: [] };
     }
-  }, [ctx?.remId, ctx?.revealed, answerMode]) || { items: [], shouldMask: true } as any;
+  }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true } as any;
 
   // Only show on answer (back) phase
   if (!ctx?.revealed) return null;

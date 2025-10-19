@@ -9,14 +9,6 @@ async function onActivate(plugin: ReactRNPlugin) {
   // 设置项
   await plugin.settings.registerNumberSetting({ id: 'maxDepth', title: 'Max Depth', description: '最大递归深度', defaultValue: 3 });
   await plugin.settings.registerNumberSetting({ id: 'maxNodes', title: 'Max Nodes', description: '节点数量上限', defaultValue: 100 });
-  await plugin.settings.registerDropdownSetting({
-    id: 'answerMode', title: 'Answer Stage', description: '答案阶段显示策略', defaultValue: 'continue',
-    options: [
-      { key: 'questionOnly', label: '题面阶段显示，答案阶段不显示', value: 'questionOnly' },
-      { key: 'continue', label: '答案阶段继续显示（同题面）', value: 'continue' },
-      { key: 'full', label: '答案阶段显示完整上下文（忽略裁剪）', value: 'full' },
-    ],
-  });
   await plugin.settings.registerBooleanSetting({ id: 'debug', title: 'Debug Mode', description: '启用调试（控制台日志与占位提示）', defaultValue: false });
   await plugin.app.toast('Context for Cloze activated');
   console.log('[CFC] Plugin activated');
@@ -62,9 +54,8 @@ async function onActivate(plugin: ReactRNPlugin) {
         }
         msg += ` anchor=${anchor?._id || 'none'}`;
       }
-      const answerMode = await plugin.settings.getSetting('answerMode');
       const debug = await plugin.settings.getSetting('debug');
-      msg += ` answerMode=${answerMode}; debug=${!!debug}`;
+      msg += ` debug=${!!debug}`;
       await plugin.app.toast(msg);
       console.log(msg);
     } catch (e) {
