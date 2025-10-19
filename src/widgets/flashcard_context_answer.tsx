@@ -249,10 +249,16 @@ function Widget() {
       //   a
       //  a a
       //  a
-      // 如果当前题目被标记 noHierarchy，则完全不显示任何上下文（对齐原生）
+      // 如果当前题目被标记 noHierarchy：仅显示“当前题目这一行”，不显示祖先/兄弟/子孙（对齐原生）
       if (noHSet.has(maskId || ctx.remId)) {
-        try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] noHierarchy on current -> hide all context'); } catch {}
-        return { items: [], shouldMask: false } as any;
+        try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] noHierarchy on current -> show only current line'); } catch {}
+        const cur = await plugin.rem.findOne(maskId || ctx.remId);
+        const rich = cur?.text || [];
+        const hasCloze = richHasCloze(rich);
+        let html = await richToHTMLWithClozeMask(plugin, rich, 'none');
+        html = addClozeRevealHighlight(html);
+        const items = [{ id: cur?._id || (maskId || ctx.remId), depth: 0, html, isCurrent: true, hasCloze }];
+        return { items, shouldMask: false } as any;
       }
 
 
