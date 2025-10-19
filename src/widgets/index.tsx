@@ -112,27 +112,53 @@ async function onActivate(plugin: ReactRNPlugin) {
     try { await plugin.app.registerCSS('cfc-queue-scope-fallback', CFC_CSS); } catch {}
   }
 
-  // Mirror RemNote theme variables into plugin scope to ensure var(--rn-clr-*) are available
+  // Mirror RemNote theme variables into plugin scope to ensure var(--rn-*) are available
   try {
-    const cs = getComputedStyle(document.documentElement);
-    const vars = [
-      '--rn-clr-text',
-      '--rn-clr-text-secondary',
-      '--rn-clr-accent',
-      '--rn-clr-accent-muted',
-      '--rn-clr-warning',
-      '--rn-clr-warning-muted',
-      '--rn-clr-border'
-    ];
-    const pairs = vars
-      .map(v => [v, (cs.getPropertyValue(v) || '').trim()] as [string, string])
-      .filter(([, val]) => !!val);
-    if (pairs.length) {
-      const decls = pairs.map(([k, v]) => `${k}: ${v};`).join(' ');
+    const tryGetRoot = () => {
+      try {
+        if (window.parent && window.parent !== window && (window.parent as any).document) {
+          return { el: (window.parent as any).document.documentElement as Element, src: 'parent' as const };
+        }
+      } catch {}
+      try {
+        if (window.top && window.top !== window && (window.top as any).document) {
+          return { el: (window.top as any).document.documentElement as Element, src: 'top' as const };
+        }
+      } catch {}
+      return { el: document.documentElement as Element, src: 'self' as const };
+    };
+    const { el, src } = tryGetRoot();
+    const cs = getComputedStyle(el);
+    const allVars: Array<[string, string]> = [];
+    // scan all custom properties prefixed with --rn-
+    for (let i = 0; i < (cs as any).length; i++) {
+      const prop = (cs as any).item(i) as string;
+      if (prop && prop.startsWith('--rn-')) {
+        const val = (cs.getPropertyValue(prop) || '').trim();
+        if (val) allVars.push([prop, val]);
+      }
+    }
+    // fallback: if enumeration fails, probe a few critical vars
+    if (!allVars.length) {
+      const probe = ['--rn-clr-text','--rn-clr-text-secondary','--rn-clr-accent','--rn-clr-accent-muted','--rn-clr-warning','--rn-clr-warning-muted','--rn-clr-border'];
+      for (const v of probe) {
+        const val = (cs.getPropertyValue(v) || '').trim();
+        if (val) allVars.push([v, val]);
+      }
+    }
+    if (allVars.length) {
+      const decls = allVars.map(([k, v]) => `${k}: ${v};`).join(' ');
       await plugin.app.registerCSS('cfc-theme-mirror', `:root { ${decls} }`);
+      // log a few key vars for diagnosis
+      const sample = Object.fromEntries(allVars
+        .filter(([k]) => ['--rn-clr-text','--rn-clr-text-secondary','--rn-clr-accent','--rn-clr-accent-muted','--rn-clr-warning','--rn-clr-warning-muted','--rn-clr-border'].includes(k))
+        .slice(0, 12));
+      console.log('[CFC][ThemeMirror] source=', src, 'count=', allVars.length, 'sample=', sample);
+    } else {
+      console.warn('[CFC][ThemeMirror] no --rn-* vars found from source');
     }
   } catch (e) {
-    console.warn('[CFC][CSS] theme mirror failed', e);
+    console.warn('[CFC][ThemeMirror] failed', e);
   }
 
 }

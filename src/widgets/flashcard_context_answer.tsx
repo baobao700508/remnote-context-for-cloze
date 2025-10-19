@@ -187,6 +187,23 @@ function Widget() {
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
 
+  // Theme probe: log a few CSS variables to diagnose color parity
+  React.useEffect(() => {
+    try {
+      const cs = getComputedStyle(document.documentElement);
+      const sample = {
+        text: cs.getPropertyValue('--rn-clr-text')?.trim(),
+        text2: cs.getPropertyValue('--rn-clr-text-secondary')?.trim(),
+        accent: cs.getPropertyValue('--rn-clr-accent')?.trim(),
+        accentMuted: cs.getPropertyValue('--rn-clr-accent-muted')?.trim(),
+        warning: cs.getPropertyValue('--rn-clr-warning')?.trim(),
+        warningMuted: cs.getPropertyValue('--rn-clr-warning-muted')?.trim(),
+        border: cs.getPropertyValue('--rn-clr-border')?.trim(),
+      };
+      console.log('[CFC][ThemeProbe][A]', sample);
+    } catch (e) { console.warn('[CFC][ThemeProbe][A] failed', e); }
+  }, []);
+
 
   const answerMode = useRunAsync(async () => (await plugin.settings.getSetting('answerMode')) ?? 'continue', []);
 

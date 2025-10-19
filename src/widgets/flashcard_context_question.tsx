@@ -183,6 +183,23 @@ function Widget() {
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
 
+  // Theme probe: log a few CSS variables to diagnose color parity
+  React.useEffect(() => {
+    try {
+      const cs = getComputedStyle(document.documentElement);
+      const sample = {
+        text: cs.getPropertyValue('--rn-clr-text')?.trim(),
+        text2: cs.getPropertyValue('--rn-clr-text-secondary')?.trim(),
+        accent: cs.getPropertyValue('--rn-clr-accent')?.trim(),
+        accentMuted: cs.getPropertyValue('--rn-clr-accent-muted')?.trim(),
+        warning: cs.getPropertyValue('--rn-clr-warning')?.trim(),
+        warningMuted: cs.getPropertyValue('--rn-clr-warning-muted')?.trim(),
+        border: cs.getPropertyValue('--rn-clr-border')?.trim(),
+      };
+      console.log('[CFC][ThemeProbe][Q]', sample);
+    } catch (e) { console.warn('[CFC][ThemeProbe][Q] failed', e); }
+  }, []);
+
   // 统一 hooks 顺序：不在此处提前 return；在后面再做 gating
   const { items, shouldMask } = useRunAsync(async () => {
     try {
