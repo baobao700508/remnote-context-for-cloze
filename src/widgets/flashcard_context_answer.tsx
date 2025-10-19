@@ -10,7 +10,7 @@ const REMOVE_FROM_QUEUE = 'removeFromQueue';
 const NO_HIERARCHY = 'noHierarchy';
 
 
-const HIDDEN_IN_QUEUE_HTML = '<span style="opacity:.6;color:var(--rn-clr-text-secondary);font-style:italic">Hidden in queue</span>';
+const HIDDEN_IN_QUEUE_HTML = '<span style="opacity:.6;color:var(--rn-clr-text-secondary,#57606a);font-style:italic">Hidden in queue</span>';
 interface QueueAdaptOpts { hideSet: Set<string>; removeSet: Set<string>; applyHideInQueue: boolean; }
 
 type Ctx = { remId?: string; cardId?: string; revealed?: boolean };
@@ -187,23 +187,6 @@ function Widget() {
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
 
-  // Theme probe: log a few CSS variables to diagnose color parity
-  React.useEffect(() => {
-    try {
-      const cs = getComputedStyle(document.documentElement);
-      const sample = {
-        text: cs.getPropertyValue('--rn-clr-text')?.trim(),
-        text2: cs.getPropertyValue('--rn-clr-text-secondary')?.trim(),
-        accent: cs.getPropertyValue('--rn-clr-accent')?.trim(),
-        accentMuted: cs.getPropertyValue('--rn-clr-accent-muted')?.trim(),
-        warning: cs.getPropertyValue('--rn-clr-warning')?.trim(),
-        warningMuted: cs.getPropertyValue('--rn-clr-warning-muted')?.trim(),
-        border: cs.getPropertyValue('--rn-clr-border')?.trim(),
-      };
-      console.log('[CFC][ThemeProbe][A]', sample);
-    } catch (e) { console.warn('[CFC][ThemeProbe][A] failed', e); }
-  }, []);
-
 
   const answerMode = useRunAsync(async () => (await plugin.settings.getSetting('answerMode')) ?? 'continue', []);
 
@@ -225,6 +208,54 @@ function Widget() {
         (async () => { const p = await plugin.powerup.getPowerupByCode(NO_HIERARCHY); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
       ]);
 
+      //  a a a a a a a a a a a a a a a a a a a a a
+      //  a a a a
+      //  a a a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //  a
+      //   a
+      //  a a
+      //  a
+      // 如果当前题目被标记 noHierarchy，则完全不显示任何上下文（对齐原生）
+      if (noHSet.has(maskId || ctx.remId)) {
+        try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] noHierarchy on current -> hide all context'); } catch {}
+        return { items: [], shouldMask: false } as any;
+      }
+
+
       const maxNodes = 10000; // 全量上限
       const noHide = await (async () => {
         try {
@@ -234,12 +265,8 @@ function Widget() {
           return set.has(maskId || ctx.remId);
         } catch { return false; }
       })();
-      const shouldMask = !noHide;
+      const shouldMask = noHide;
       let items = await collectFullTree(plugin, anchor, maskId || ctx.remId, maxDepth, maxNodes, shouldMask, { hideSet, removeSet, applyHideInQueue: false });
-      if (noHSet.has(maskId || ctx.remId)) {
-        const cur = items.find(x => (x as any).isCurrent);
-        if (cur) items = items.filter(x => x.depth >= cur.depth);
-      }
       console.log('[CFC][A] items', items.length, 'mask target', maskId || ctx.remId, 'shouldMask', shouldMask);
       return { items, shouldMask };
     } catch (e) {
