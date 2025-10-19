@@ -91,7 +91,7 @@ async function richToHTMLWithClozeMask(plugin: any, rich: any[], mode: 'ellipsis
   }
 }
 
-// RichText 
+// RichText helpers
 
 async function getNearestAnchor(plugin: any, remId: string) {
   const power = await plugin.powerup.getPowerupByCode(POW_CODE);
@@ -205,7 +205,7 @@ function Widget() {
       let _mn = Number(rawNodes); if (!Number.isFinite(_mn) || _mn < 0) _mn = 10000;
       const maxDepth = _md;
       const maxNodes = _mn;
-      //   anchor  maxDepth 
+      // Guard: if path from anchor to current exceeds maxDepth, disable context rendering
       const depthToCurrent = await (async () => {
         try {
           let d = 0;
@@ -230,47 +230,8 @@ function Widget() {
         (async () => { const p = await plugin.powerup.getPowerupByCode(NO_HIERARCHY); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
       ]);
 
-      //  a a a a a a a a a a a a a a a a a a a a a
-      //  a a a a
-      //  a a a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //  a
-      //   a
-      //  a a
-      //  a
+      // cleaned placeholder comments removed
+
       // 如果当前题目被标记 noHierarchy：仅显示“当前题目这一行”，不显示祖先/兄弟/子孙（对齐原生）
       if (noHSet.has(maskId || ctx.remId)) {
         try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] noHierarchy on current -> show only current line'); } catch {}
