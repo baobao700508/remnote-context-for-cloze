@@ -186,6 +186,8 @@ function Widget() {
   React.useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 300); return () => clearInterval(id); }, []);
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
+  const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
+  const locationName = (ctx as any)?.locationName || (ctx as any)?.location || '';
 
 
 
@@ -302,6 +304,10 @@ function Widget() {
       return { items: [], enabled: false };
     }
   }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true, enabled: false } as any;
+  //  location gating
+  if (override && locationName !== 'Flashcard') return null;
+  if (!override && locationName !== 'FlashcardUnder') return null;
+
 
   // Only show on answer (back) phase
   if (!ctx?.revealed) return null;

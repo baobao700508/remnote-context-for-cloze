@@ -182,6 +182,8 @@ function Widget() {
   React.useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 300); return () => clearInterval(id); }, []);
   const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
+  const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
+  const locationName = (ctx as any)?.locationName || (ctx as any)?.location || '';
 
   // 统一 hooks 顺序：不在此处提前 return；在后面再做 gating
   const { items, shouldMask, enabled } = useRunAsync(async () => {
@@ -273,12 +275,17 @@ function Widget() {
         <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />
       );
     }
+
     return <span style={{ fontSize: '1rem' }} dangerouslySetInnerHTML={{ __html: it.html }} />;
   };
 
   // gating (after all hooks):
   if (ctx?.revealed) return null;
   if (!enabled) return null; // 未标记我们 Power-Up（上溯链无 anchor）=> 完全透明，不渲染任何内容
+  //  location  override 
+  if (override && locationName !== 'Flashcard') return null;
+  if (!override && locationName !== 'FlashcardUnder') return null;
+
   if (!items.length) return debug ? (
     <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>
   ) : null;
