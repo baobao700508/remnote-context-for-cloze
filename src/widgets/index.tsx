@@ -81,7 +81,7 @@ async function onActivate(plugin: ReactRNPlugin) {
   // CSS：仅队列内显示，编辑态隐藏，贴近原生
   const CFC_CSS = `
     /* 仅在复习队列内显示 */
-    .rn-queue__content .cfc-container { margin: 6px 0 0; padding: 0; font-size: 0.92rem; line-height: 1.45; }
+    .rn-queue__content .cfc-container { margin: 6px 0 0; padding: 0; font-size: 0.92rem; line-height: 1.45; color: var(--rn-clr-text, #1f2328); }
     .rn-queue__content .cfc-title { display: none; color: var(--rn-clr-text-secondary, #57606a); font-weight: 600; margin-bottom: 4px; }
     .rn-queue__content .rn-dialog .cfc-container { display: none !important; }
 
@@ -91,76 +91,32 @@ async function onActivate(plugin: ReactRNPlugin) {
 
     /* 黄底省略号徽标（与蓝色问号一致的尺寸/圆角/边框） */
     .rn-queue__content .cfc-omission {
-      display: inline-block; padding: 0 8px; border-radius: 6px; line-height: 1.45;
-      background: var(--rn-clr-warning-muted);
-      color: inherit;
-      border: 0;
+      display: inline-block; padding: 0 10px; border-radius: 8px; line-height: 1.45;
+      background: var(--rn-clr-warning-muted, rgba(255,212,0,0.15));
+      color: var(--rn-clr-warning, #b58900);
+      border: 1px solid rgba(255,212,0,0.3);
     }
 
     /* 被“显示出来的 cloze”条目下划线提示（仅视觉标识） */
     .rn-queue__content .cfc-revealed-cloze {
-      text-decoration: underline !important;
-      text-decoration-color: var(--rn-clr-accent, #0969da) !important;
-      text-decoration-thickness: 2px !important;
-      text-underline-offset: 2px !important;
+      text-decoration: underline;
+      text-decoration-color: var(--rn-clr-accent, #0969da);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 2px;
     }
   `;
   try {
-    await plugin.app.registerCSS('cfc-queue-scope', CFC_CSS);
-  } catch (e) {
-    console.error('[CFC][CSS] registerCSS failed', e);
-    try { await plugin.app.registerCSS('cfc-queue-scope-fallback', CFC_CSS); } catch {}
-  }
-
-  // Mirror RemNote theme variables into plugin scope to ensure var(--rn-*) are available
-  try {
-    const tryGetRoot = () => {
-      try {
-        if (window.parent && window.parent !== window && (window.parent as any).document) {
-          return { el: (window.parent as any).document.documentElement as Element, src: 'parent' as const };
-        }
-      } catch {}
-      try {
-        if (window.top && window.top !== window && (window.top as any).document) {
-          return { el: (window.top as any).document.documentElement as Element, src: 'top' as const };
-        }
-      } catch {}
-      return { el: document.documentElement as Element, src: 'self' as const };
+    const upsertStyle = (id: string, css: string) => {
+      const d = document;
+      let tag = d.getElementById(id) as HTMLStyleElement | null;
+      if (!tag) { tag = d.createElement('style'); tag.id = id; d.head.appendChild(tag); }
+      tag.textContent = css;
     };
-    const { el, src } = tryGetRoot();
-    const cs = getComputedStyle(el);
-    const allVars: Array<[string, string]> = [];
-    // scan all custom properties prefixed with --rn-
-    for (let i = 0; i < (cs as any).length; i++) {
-      const prop = (cs as any).item(i) as string;
-      if (prop && prop.startsWith('--rn-')) {
-        const val = (cs.getPropertyValue(prop) || '').trim();
-        if (val) allVars.push([prop, val]);
-      }
-    }
-    // fallback: if enumeration fails, probe a few critical vars
-    if (!allVars.length) {
-      const probe = ['--rn-clr-text','--rn-clr-text-secondary','--rn-clr-accent','--rn-clr-accent-muted','--rn-clr-warning','--rn-clr-warning-muted','--rn-clr-border'];
-      for (const v of probe) {
-        const val = (cs.getPropertyValue(v) || '').trim();
-        if (val) allVars.push([v, val]);
-      }
-    }
-    if (allVars.length) {
-      const decls = allVars.map(([k, v]) => `${k}: ${v};`).join(' ');
-      await plugin.app.registerCSS('cfc-theme-mirror', `:root { ${decls} }`);
-      // log a few key vars for diagnosis
-      const sample = Object.fromEntries(allVars
-        .filter(([k]) => ['--rn-clr-text','--rn-clr-text-secondary','--rn-clr-accent','--rn-clr-accent-muted','--rn-clr-warning','--rn-clr-warning-muted','--rn-clr-border'].includes(k))
-        .slice(0, 12));
-      console.log('[CFC][ThemeMirror] source=', src, 'count=', allVars.length, 'sample=', sample);
-    } else {
-      console.warn('[CFC][ThemeMirror] no --rn-* vars found from source');
-    }
+    upsertStyle('cfc-queue-scope', CFC_CSS);
+    console.log('[CFC][CSS] injected locally (no registerCSS)');
   } catch (e) {
-    console.warn('[CFC][ThemeMirror] failed', e);
+    console.error('[CFC][CSS] local inject failed', e);
   }
-
 }
 
 async function onDeactivate(_: ReactRNPlugin) {}
