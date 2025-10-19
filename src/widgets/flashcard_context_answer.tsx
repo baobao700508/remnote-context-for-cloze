@@ -205,6 +205,24 @@ function Widget() {
       let _mn = Number(rawNodes); if (!Number.isFinite(_mn) || _mn < 0) _mn = 10000;
       const maxDepth = _md;
       const maxNodes = _mn;
+      //   anchor  maxDepth 
+      const depthToCurrent = await (async () => {
+        try {
+          let d = 0;
+          let cur = await plugin.rem.findOne(maskId || ctx.remId);
+          while (cur && cur._id !== anchor._id && cur.parent) {
+            cur = await plugin.rem.findOne(cur.parent);
+            d++;
+            if (d > 2048) break; // safe guard
+          }
+          return cur && cur._id === anchor._id ? d : Number.POSITIVE_INFINITY;
+        } catch { return Number.POSITIVE_INFINITY; }
+      })();
+      if (depthToCurrent > maxDepth) {
+        try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][A] over maxDepth', { depthToCurrent, maxDepth }); } catch {}
+        return { items: [], shouldMask: true, enabled: true } as any;
+      }
+
       // 读取三种官方 Power-up 的标记集合
       const [hideSet, removeSet, noHSet] = await Promise.all([
         (async () => { const p = await plugin.powerup.getPowerupByCode(HIDE_IN_QUEUE); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),

@@ -199,6 +199,24 @@ function Widget() {
       let _mn = Number(rawNodes); if (!Number.isFinite(_mn) || _mn < 0) _mn = 10000;
       const maxDepth = _md;
       const maxNodes = _mn;
+      // 若当前卡片相对 anchor 的深度超过 maxDepth，则直接不显示上下文（保持插件启用态，便于 debug 显示占位）
+      const depthToCurrent = await (async () => {
+        try {
+          let d = 0;
+          let cur = await plugin.rem.findOne(maskId || ctx.remId);
+          while (cur && cur._id !== anchor._id && cur.parent) {
+            cur = await plugin.rem.findOne(cur.parent);
+            d++;
+            if (d > 2048) break; // 安全上限
+          }
+          return cur && cur._id === anchor._id ? d : Number.POSITIVE_INFINITY;
+        } catch { return Number.POSITIVE_INFINITY; }
+      })();
+      if (depthToCurrent > maxDepth) {
+        try { const dbg = await plugin.settings.getSetting('debug'); if (dbg) console.log('[CFC][Q] over maxDepth', { depthToCurrent, maxDepth }); } catch {}
+        return { items: [], shouldMask: true, enabled: true } as any;
+      }
+
       // 读取三种官方 Power-up 的标记集合（用于上下文区域的适配）
       const [hideSet, removeSet, noHSet] = await Promise.all([
         (async () => { const p = await plugin.powerup.getPowerupByCode(HIDE_IN_QUEUE); const t = p ? await p.taggedRem() : []; return new Set((t||[]).map((r:any)=>r._id)); })(),
