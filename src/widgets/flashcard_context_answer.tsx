@@ -1,4 +1,4 @@
-import { renderWidget, usePlugin, useRunAsync, WidgetLocation } from '@remnote/plugin-sdk';
+import { renderWidget, usePlugin, useRunAsync } from '@remnote/plugin-sdk';
 import * as React from 'react';
 
 
@@ -42,7 +42,7 @@ function addClozeRevealHighlight(html: string): string {
   try {
     // 仅增强我们自己插入的 cfc-revealed-cloze 包裹，不影响原始富文本内部样式
     return html.replace(/<span class=\"cfc-revealed-cloze\" style=\"([^"]*)\">/g,
-      (_m, s1) => `<span class="cfc-revealed-cloze" style="${s1};background:var(--rn-clr-accent-muted, rgba(56,139,253,0.15));border-radius:3px;padding:0 2px">`);
+      (_m, s1) => `<span class="cfc-revealed-cloze" style="${s1};background:var(--rn-clr-accent-muted, rgba(56,139,253,0.15));border-radius:3px">`);
   } catch { return html; }
 }
 
@@ -184,32 +184,8 @@ function Widget() {
   const plugin = usePlugin();
   const [tick, setTick] = React.useState(0);
   React.useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 300); return () => clearInterval(id); }, []);
-  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as any;
+  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), [tick]) as Ctx | undefined;
   const debug = useRunAsync(async () => !!(await plugin.settings.getSetting('debug')), []);
-  const override = useRunAsync(async () => !!(await plugin.settings.getSetting('overrideNativeContent')), []);
-  const slot = (() => {
-    // 优先用 widgetId 判定（我们为不同挂载位置注册了不同的 id）
-    const wid: any = (ctx as any)?.widgetId ?? (ctx as any)?.widgetID ?? (ctx as any)?.id;
-    let known = false; let isMain = false; let hint: any = wid;
-    if (typeof wid === 'string') {
-      known = true;
-      const w = wid.toLowerCase();
-      isMain = w.includes('_main');
-    } else {
-      // 回退：尝试从 location 族字段估计
-      const loc: any = ctx?.location ?? (ctx as any)?.widgetLocation ?? (ctx as any)?.slot ?? (ctx as any)?.mountLocation;
-      hint = loc;
-      if (typeof loc === 'number') {
-        known = true;
-        try { isMain = (loc === (WidgetLocation as any).Flashcard); } catch { isMain = false; }
-      } else if (typeof loc === 'string') {
-        known = true; const s = loc.toLowerCase();
-        isMain = s.includes('flashcard') && !s.includes('under');
-      }
-    }
-    if (debug) console.log('[CFC][A][slot]', { override, known, isMain, hint, ctx });
-    return { known, isMain } as const;
-  })();
 
 
 
@@ -329,8 +305,6 @@ function Widget() {
 
   // Only show on answer (back) phase
   if (!ctx?.revealed) return null;
-  // 覆盖模式 gating：仅在 Flashcard 主区域实例渲染；默认模式：仅在 FlashcardUnder 实例渲染
-  if (override) { if (slot.known && !slot.isMain) return null; } else { if (slot.known && slot.isMain) return null; }
   if (!enabled) return null; // 未标记我们 Power-Up（祖先链无 anchor）=> 完全透明
   const renderItem = (it: { id: string; depth: number; html: string; isCurrent?: boolean; hasCloze?: boolean }) => {
     if (it.isCurrent) {
