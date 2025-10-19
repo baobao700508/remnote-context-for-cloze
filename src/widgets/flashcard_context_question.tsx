@@ -283,8 +283,20 @@ function Widget() {
   if (ctx?.revealed) return null;
   if (!enabled) return null; // 未标记我们 Power-Up（上溯链无 anchor）=> 完全透明，不渲染任何内容
   //  location  override 
-  if (override && locationName !== 'Flashcard') return null;
-  if (!override && locationName !== 'FlashcardUnder') return null;
+
+  // Debug: 打印位置与覆盖设置，便于诊断
+  try { if (debug) console.log('[CFC][Q] location/override', { locationName, override }); } catch {}
+
+  // 位置 gating（宽松判断）：
+  // - 当 override=true，仅明确在 Under 位置时拦截；未知位置不拦截
+  // - 当 override=false，仅明确在主区域位置时拦截；未知位置不拦截（以保证默认模式尽量显示）
+  const loc = (locationName || '').toString();
+  const isUnder = /Under/i.test(loc);
+  const isMain = /Flashcard/i.test(loc) && !isUnder;
+  if (override && isUnder) return null;
+  if (!override && isMain) return null;
+
+
 
   if (!items.length) return debug ? (
     <div className="cfc-container"><div className="cfc-empty">No extra context</div></div>

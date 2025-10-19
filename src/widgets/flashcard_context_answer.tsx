@@ -304,9 +304,14 @@ function Widget() {
       return { items: [], enabled: false };
     }
   }, [ctx?.remId, ctx?.revealed]) || { items: [], shouldMask: true, enabled: false } as any;
-  //  location gating
-  if (override && locationName !== 'Flashcard') return null;
-  if (!override && locationName !== 'FlashcardUnder') return null;
+  // Debug:  location/override 
+  try { if (debug) console.log('[CFC][A] location/override', { locationName, override }); } catch {}
+  //  gating 
+  const locA = (locationName || '').toString();
+  const isUnderA = /Under/i.test(locA);
+  const isMainA = /Flashcard/i.test(locA) && !isUnderA;
+  if (override && isUnderA) return null;
+  if (!override && isMainA) return null;
 
 
   // Only show on answer (back) phase
