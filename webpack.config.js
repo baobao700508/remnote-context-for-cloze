@@ -90,6 +90,13 @@ const config = {
       patterns: [
         { from: 'public', to: '' },
         { from: 'README.md', to: '' },
+        // RemNote asks every plugin origin for these two stylesheets. Without them the dev server
+        // answers 404 (and index.html for App.css, which then trips strict MIME checking), so the
+        // console fills with the same two errors on every widget mount. Emitting src/style.css
+        // under both names answers those requests — and is also how the plugin's own base styles
+        // reach a production build, where the widget iframe loads nothing but its sandbox bundle.
+        { from: 'src/style.css', to: 'snippet.css', noErrorOnMissing: true },
+        { from: 'src/style.css', to: 'App.css', noErrorOnMissing: true },
       ],
     }),
     fastRefresh,

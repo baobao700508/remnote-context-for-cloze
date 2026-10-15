@@ -1,16 +1,22 @@
 {
   "manifestVersion": 1,
-  "id": "context_for_cloze",
-  "name": "Context for Cloze",
-  "author": "baobao700508",
-  "repoUrl": "https://github.com/baobao700508/remnote-context-for-cloze",
-  "version": { "major": 0, "minor": 1, "patch": 0 },
+  "id": "context_for_cloze_enhanced",
+  "name": "Context Tree for Outline Cards",
+  "author": "hugomarins (fork), baobao700508 (original)",
+  "repoUrl": "https://github.com/hugomarins/remnote-context-for-cloze",
+  "version": {
+    "major": 0,
+    "minor": 2,
+    "patch": 1
+  },
   "theme": [],
   "enableOnMobile": true,
-  "description": "显示 Cloze 题面上下文（基于最近 Power-Up 祖先的子树，纯显示层）",
+  "description": "Show a context tree under any flashcard in the queue \u2014 clozes and front/back cards alike, with back sides and their direction arrows (rooted at the nearest Power-Up ancestor; display-only).",
   "requestNative": false,
   "requiredScopes": [
-    { "type": "All", "level": "ReadCreateModify" }
+    {
+      "type": "All",
+      "level": "ReadCreateModifyDelete"
+    }
   ]
 }
-
